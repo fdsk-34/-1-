@@ -1,0 +1,346 @@
+/* 공통 설정 */
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 마이페이지 전체 영역 */
+.mypage-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  text-align: center;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* 타이틀 영역 */
+.mypage-title-area {
+  width: 20%;
+  max-width: 1200px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 50px;
+}
+
+.title-card {
+  position: relative;
+  width: 100%;
+  height: 60px; /* Smaller height for the title box */
+  background-size: cover;
+  background-position: center;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  overflow: hidden;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.title-card .content-wrapper {
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.55);
+  padding: 10px 20px;
+  border-radius: 16px;
+  z-index: 2;
+}
+
+.title-card h1 {
+  margin: 0;
+  font-size: 1.5rem; /* Smaller font size for the title */
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 5px rgba(0,0,0,0.7);
+}
+
+/* 프로필과 카드 그리드 컨테이너 */
+.mypage-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 80px;
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* 왼쪽 프로필 영역 */
+.mypage-profile-area {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 300px;
+  max-height: 600px;
+  position: relative;
+  text-align: center;
+}
+
+/* 프로필 카드 */
+.profile-edit-card {
+  position: relative;
+  height: 100%;
+  width: 90%;
+  background-size: cover;
+  background-position: center;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  overflow: hidden;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* 글자 감싸는 반투명 박스 */
+.profile-edit-card .content-wrapper {
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.8); /* 반투명 흰색 */
+  padding: 20px;
+  border-radius: 16px;
+  z-index: 2;
+  color: #000;
+}
+
+/* 프로필 카드 텍스트 */
+.profile-edit-card h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #000;
+}
+
+.profile-edit-card p {
+  font-size: 1rem;
+  line-height: 1.4;
+  color: #333;
+}
+
+/* 프로필 편집 및 업로드 버튼 */
+.profile-edit-link,
+.profile-upload-link {
+  margin-top: 20px;
+  align-self: center;
+  padding: 12px 24px;
+  background-color: rgba(255, 255, 255, 0.85);
+  color: #222;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 30px;
+  text-decoration: none;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  cursor: pointer;
+  z-index: 2;
+  user-select: none;
+  border: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.profile-edit-link:hover,
+.profile-upload-link:hover,
+.profile-edit-link:focus,
+.profile-upload-link:focus {
+  background-color: #0055ff;
+  color: #fff;
+  box-shadow: 0 5px 15px rgba(0,85,255,0.6);
+}
+
+/* 버튼 한 줄 배치 */
+.profile-edit-card .content-wrapper div {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.profile-edit-card .content-wrapper div input {
+  margin: 5px 0;
+}
+
+.profile-edit-card .content-wrapper div button {
+  margin: 5px;
+  padding: 5px 10px;
+  background-color: rgba(255, 255, 255, 0.85);
+  color: #222;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.profile-edit-card .content-wrapper div button:hover {
+  background-color: #0055ff;
+  color: #fff;
+}
+
+.profile-edit-card .content-wrapper div p {
+  color: red;
+  font-size: 0.9rem;
+}
+
+/* 카드 그리드 영역 */
+.mypage-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  row-gap: 5px;
+  column-gap: 10px;
+  margin-top: -10px;
+  margin-bottom: 50px;
+}
+
+/* 카드 개별 컨테이너 */
+.mypage-card {
+  width: 180px;
+  height: 180px;
+  text-decoration: none;
+  perspective: 1000px;
+  border: 2px solid #ccc;
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  align-items: start;
+  margin-bottom: 50px;
+  margin-right: 40px;
+}
+
+/* 카드 내용 영역 - 팔각형 모양 */
+.mypage-card-content {
+  height: 180px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+/* 카드 호버 효과 */
+.mypage-card:hover {
+  border-color: #0055ff;
+  box-shadow: 0 0 12px 3px rgba(0,85,255,0.6);
+}
+
+.mypage-card-content:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.5);
+}
+
+/* 카드 내부 반투명 오버레이 */
+.mypage-card-content .overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.55);
+  padding: 8px 0;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  text-align: center;
+  color: white;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+/* 카드 제목 */
+.mypage-card-content h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* 카드 설명 */
+.mypage-card-content p {
+  margin: 0;
+  font-size: 10px;
+}
+
+/* 카드 아이콘 오버레이 */
+.card-icon-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  opacity: 0.2;
+  width: 50px;
+  height: 50px;
+  pointer-events: none;
+}
+
+.card-icon-overlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.equalizer-bar {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 50px;
+}
+
+.equalizer-bar .bar {
+  width: 15px;
+  background: linear-gradient(to top, #ff6b6b, #ffd93d);
+  animation: bounce 1s infinite ease-in-out;
+  animation-delay: calc(var(--i) * 0.05s);
+  height: 20%;
+}
+
+@keyframes bounce {
+  0%, 100% { height: 20%; }
+  50% { height: 100%; }
+}
+
+/* 반응형 간단 처리 */
+@media (max-width: 768px) {
+  .mypage-content {
+    flex-direction: column;
+    gap: 30px;
+  }
+  .mypage-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mypage-card {
+    width: 140px;
+    height: 140px;
+  }
+  .mypage-profile-area {
+    flex: 0 0 280px;
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mypage-container {
+    flex-direction: column;
+    gap: 30px;
+  }
+  .mypage-profile-area {
+    width: 100%;
+    min-height: auto;
+  }
+  .mypage-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .mypage-card {
+    width: 100%;
+    height: auto;
+    clip-path: none;
+    border-radius: 12px;
+  }
+  .card-icon-overlay {
+    position: static;
+    opacity: 0.5;
+    margin-top: 10px;
+    width: 50px;
+    height: 50px;
+  }
+}

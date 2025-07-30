@@ -41,7 +41,7 @@ export default function MainLayout() {
         </main>
 
         <aside className="main-sidebar-area">
-          <SidebarContent /> 
+         
         </aside>
       </div>
 

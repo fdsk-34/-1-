@@ -99,3 +99,104 @@
 .header-button-signup:hover {
   background-color: #0d9488;
 }
+
+/* 기존 코드 아래에 추가 */
+
+.signup-adjust {
+  margin-right: 6px;
+}
+
+.hamburger-button {
+  font-size: 1.5rem;
+  background: transparent;
+  color: #640b8d;
+  border: none;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+/* 햄버거 메뉴가 열릴 때 배경 오버레이 */
+.sidebar-overlay {
+  position: fixed;
+  top: 70px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99;
+}
+
+.sidebar-overlay.no-background {
+  background: transparent;
+}
+
+
+/* 슬라이드로 들어오는 사이드바 */
+.sidebar-drawer {
+  width: 320px;
+  max-width: 80%;
+  height: 100%;
+  background: white;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease forwards;
+  overflow-y: auto;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* 햄버거 버튼 */
+.hamburger-button {
+  font-size: 1.5rem;
+  background: transparent;
+  color: #640b8d;
+  border: none;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+/* 회원가입 버튼 살짝 왼쪽으로 이동 */
+.signup-adjust {
+  margin-right: 6px;
+}
+
+/* 슬라이딩 사이드바 (헤더 아래에 고정) */
+.sidebar-slide-wrapper {
+  position: fixed;
+  top: 70px; /* 헤더 높이 */
+  right: -320px;
+  width: 320px;
+  height: calc(100vh - 70px);
+  background-color: #fff;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  transition: right 0.35s ease;
+  z-index: 99; /* 헤더 아래지만 다른 요소 위 */
+}
+
+/* 열릴 때 */
+.sidebar-slide-wrapper.open {
+  right: 0;
+}
+
+
+/* 반응형 대응 */
+@media (max-width: 768px) {
+  .sidebar-slide-wrapper {
+    width: 80%;
+  }
+
+  .header-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .header-app-title {
+    font-size: 1.2rem;
+  }
+}

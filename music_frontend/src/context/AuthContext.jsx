@@ -8,6 +8,7 @@ export const AuthContext = React.createContext({
   login: async () => {},
   logout: () => {},
   setIsSubscribed: () => {},
+  setProfileBgImage: () => {},
 });
 
 // 커스텀 훅으로 쉽게 사용

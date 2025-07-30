@@ -1,26 +1,6 @@
-// src/pages/RankingPage.jsx
-import React, { useState, useEffect } from 'react';
-import RankingFilterBar from '../component/RankingFilterBar';  // 필터바 컴포넌트 경로 조정
+import React, { useState } from 'react';
+import RankingFilterBar from '../component/RankingFilterBar';
 import '../styles/RankingPage.css';
-
-// --- 더미 데이터 ---
-const DUMMY_GENRES = [
-  { id: 'dg1', name: '발라드', imageUrl: '/images/K-057.jpg' },
-  { id: 'dg2', name: '댄스', imageUrl: '/images/K-058.jpg' },
-  { id: 'dg3', name: '힙합', imageUrl: '/images/K-059.jpg' },
-  { id: 'dg4', name: '재즈', imageUrl: '/images/K-051.jpg' },
-  { id: 'dg5', name: '락', imageUrl: '/images/K-052.jpg' },
-  { id: 'dg6', name: '트로트', imageUrl: '/images/K-053.jpg' },
-  { id: 'dg7', name: '팝', imageUrl: '/images/K-054.jpg' },
-  { id: 'dg8', name: 'R&B', imageUrl: '/images/K-055.jpg' },
-  { id: 'dg9', name: '클래식', imageUrl: '/images/K-056.jpg' },
-  { id: 'dg10', name: 'EDM', imageUrl: '/images/K-010.jpg' },
-  { id: 'dg11', name: '컨트리', imageUrl: '/images/K-011.jpg' },
-  { id: 'dg12', name: '레게', imageUrl: '/images/K-015.jpg' },
-];
-
-// 장르 필터 옵션 (필터바에서 사용할 수 있음)
-const GENRE_OPTIONS = ['all', '발라드', '댄스', '힙합', '재즈', '락', '트로트', '팝', 'R&B', '클래식', 'EDM', '컨트리', '레게'];
 
 const DUMMY_ALBUMS = [
   { id: 'da1', title: '봄날의 멜로디', artist: '플로이', coverUrl: '/images/K-051.jpg', songCount: 10, updatedAt: '2024.07.10', genre: '발라드', origin: '국내', length: 240, isHighQuality: true, likes: 120, followers: 500 },
@@ -31,14 +11,6 @@ const DUMMY_ALBUMS = [
   { id: 'da6', title: '퇴근 길', artist: '레몬트리', coverUrl: '/images/K-056.jpg', songCount: 13, updatedAt: '2024.07.05', genre: '트로트', origin: '국내', length: 180, isHighQuality: false, likes: 60, followers: 190 },
 ];
 
-// 국가 필터 옵션
-const REGION_OPTIONS = [
-  { label: '종합', value: 'all' },
-  { label: '국내', value: 'domestic' },
-  { label: '해외', value: 'international' },
-];
-
-// 초 → mm:ss 변환 함수
 function formatLength(seconds) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -48,35 +20,20 @@ function formatLength(seconds) {
 const RankingPage = () => {
   const [genreFilter, setGenreFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
-  const [filteredAlbums, setFilteredAlbums] = useState([]);
 
-  // 좋아요/팔로우/담기 상태 관리 (앨범 ID 기준)
   const [likedAlbums, setLikedAlbums] = useState({});
   const [followedAlbums, setFollowedAlbums] = useState({});
   const [addedAlbums, setAddedAlbums] = useState({});
 
-  // 호버 중인 앨범 ID
   const [hoveredAlbumId, setHoveredAlbumId] = useState(null);
 
-  useEffect(() => {
-    let filtered = DUMMY_ALBUMS;
+  const filteredAlbums = DUMMY_ALBUMS.filter(album => {
+    if (genreFilter !== 'all' && album.genre !== genreFilter) return false;
+    if (regionFilter === 'domestic' && album.origin !== '국내') return false;
+    if (regionFilter === 'international' && album.origin !== '해외') return false;
+    return true;
+  });
 
-    if (genreFilter !== 'all') {
-      filtered = filtered.filter(album => album.genre === genreFilter);
-    }
-
-    if (regionFilter !== 'all') {
-      if (regionFilter === 'domestic') {
-        filtered = filtered.filter(album => album.origin === '국내');
-      } else if (regionFilter === 'international') {
-        filtered = filtered.filter(album => album.origin === '해외');
-      }
-    }
-
-    setFilteredAlbums(filtered);
-  }, [genreFilter, regionFilter]);
-
-  // 클릭 토글 함수
   const toggleLike = (id) => {
     setLikedAlbums(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -102,6 +59,7 @@ const RankingPage = () => {
 
       <div className="ranking-list">
         {filteredAlbums.length === 0 && <p>검색 결과가 없습니다.</p>}
+
         {filteredAlbums.map((album, idx) => (
           <div
             key={album.id}
@@ -110,25 +68,23 @@ const RankingPage = () => {
             onMouseLeave={() => setHoveredAlbumId(null)}
           >
             <div className="ranking-index">{idx + 1}</div>
-            <img src={album.coverUrl} alt={`${album.title} 앨범 커버`} className="album-thumbnail" />
 
-            <div className="album-info-with-play">
-              <div className="album-artist-box">
-                <div className="album-name" title={album.title}>{album.title}</div>
-                <div className="artist-name" title={album.artist}>{album.artist}</div>
-              </div>
+            <div className="thumbnail-wrapper">
+              <img src={album.coverUrl} alt={`${album.title} 앨범 커버`} className="album-thumbnail" />
+              {hoveredAlbumId === album.id && (
+                <button
+                  className="play-button"
+                  onClick={() => alert(`재생: ${album.title}`)}
+                  aria-label="재생"
+                >
+                  ▶
+                </button>
+              )}
+            </div>
 
-              <div className="play-button-wrapper">
-                {hoveredAlbumId === album.id && (
-                  <button
-                    className="play-button"
-                    onClick={() => alert(`재생: ${album.title}`)}
-                    aria-label="재생"
-                  >
-                    ▶
-                  </button>
-                )}
-              </div>
+            <div className="album-name-artist">
+              <div className="album-name" title={album.title}>{album.title}</div>
+              <div className="artist-name" title={album.artist}>{album.artist}</div>
             </div>
 
             <div className="song-info">
@@ -141,7 +97,7 @@ const RankingPage = () => {
                 onClick={() => toggleLike(album.id)}
                 aria-label="좋아요"
               >
-                ❤️ <span className="count">{album.likes}</span>
+                ❤️ <span className="count">{album.likes + (likedAlbums[album.id] ? 1 : 0)}</span>
               </button>
 
               <button
@@ -149,7 +105,7 @@ const RankingPage = () => {
                 onClick={() => toggleFollow(album.id)}
                 aria-label="팔로우"
               >
-                👥 <span className="count">{album.followers}</span>
+                👥 <span className="count">{album.followers + (followedAlbums[album.id] ? 1 : 0)}</span>
               </button>
 
               <button

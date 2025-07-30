@@ -129,6 +129,7 @@
   background-color: var(--flo-bg-medium); /* bg-gray-700 */
   border-radius: 0.5rem; /* rounded-lg */
   -webkit-appearance: none; /* appearance-none */
+  appearance: none;
   cursor: pointer;
 }
 
@@ -154,6 +155,7 @@
   background-color: var(--flo-bg-medium); /* bg-gray-700 */
   border-radius: 0.5rem; /* rounded-lg */
   -webkit-appearance: none; /* appearance-none */
+  appearance: none;
   cursor: pointer;
 }
 

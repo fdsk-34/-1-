@@ -327,7 +327,7 @@
 
 /* 필터 버튼 스타일 (원본 유지) */
 .filter-button {
-  background-color: var(--flo-bg-primary); /* 원본 유지 */
+  background-color: var(--flo-highlight-bg); /* 원본 유지 */
   color: var(--flo-text-primary); /* 원본 유지 */
   border: 1px solid var(--flo-border-color); /* 원본 유지 */
   padding: 8px 12px; /* 원본 유지 */
@@ -340,6 +340,27 @@
 .filter-button:hover {
   background-color: var(--flo-highlight-bg); /* 원본 유지 */
   border-color: var(--flo-accent-color); /* 원본 유지 */
+}
+
+
+.genre-filter-toggle-btn {
+  background-color: var(--flo-accent-color); /* 💡 hover 색상을 기본으로 */
+  color: var(--flo-text-white);
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 200px;
+  position: relative;
+  transition: none; /* hover 변화 없도록 */
+}
+
+.genre-filter-toggle-btn:hover {
+  background-color: var(--flo-accent-color); /* 변화 없음 */
+  color: var(--flo-text-white);
 }
 
 /* genre-filter-options-popup (원본 유지) */

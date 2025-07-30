@@ -189,7 +189,7 @@ const RecommendPage = () => {
       {/* 📌 추가했던 '배경 변경' 버튼은 제거되어야 합니다. 페이지 이동 시 자동으로 바뀌도록 할 예정. */}
 
       <div className="song-filter-bar-container">
-        <button className="filter-button" onClick={handleFilterButtonClick}>
+        <button className="genre-filter-toggle-btn" onClick={handleFilterButtonClick}>
           장르 필터 {isFilterOptionsVisible ? '▲' : '▼'}
         </button>
 
