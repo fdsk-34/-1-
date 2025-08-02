@@ -4,7 +4,7 @@ import { MusicPlayerContext } from '../context/MusicPlayerContext';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import Equalizer from './Equalizer';
+import Equalizer from '../component/Equalizer';
 import '../styles/MusicPlayer.css';
 import noSongImage from '../assets/default-cover.jpg';
 import {

@@ -1,130 +1,168 @@
 .file-management-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+    width: 90%;
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .file-management-title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #2d3748;
-  margin-bottom: 20px;
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
 }
 
 .file-management-controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
 }
 
 .file-management-search {
-  padding: 10px;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  flex: 1;
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+    margin-right: 10px;
 }
 
 .file-management-upload-label {
-  padding: 10px 16px;
-  background: #3182ce;
-  color: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    font-weight: bold;
 }
 
 .file-management-upload-input {
-  display: none;
+    display: none;
 }
 
 .file-management-preview {
-  background: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
 }
 
 .file-management-preview h3 {
-  font-size: 1.3rem;
-  color: #2d3748;
-  margin-bottom: 10px;
+    margin-top: 0;
+    color: #495057;
 }
 
 .file-management-preview p {
-  font-size: 1rem;
-  color: #718096;
-  margin-bottom: 5px;
+    margin: 5px 0;
+    color: #6c757d;
+}
+
+.file-management-audio-preview {
+    width: 100%;
+    margin-top: 10px;
 }
 
 .file-management-preview-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
+    margin-top: 15px;
 }
 
 .file-management-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+    margin-right: 10px;
+    transition: background-color 0.2s;
 }
 
 .file-management-btn-upload {
-  background: #3182ce;
-  color: #fff;
+    background-color: #28a745;
+}
+
+.file-management-btn-upload:hover {
+    background-color: #218838;
 }
 
 .file-management-btn-cancel {
-  background: #718096;
-  color: #fff;
+    background-color: #dc3545;
 }
 
-.file-management-btn-download {
-  background: #38a169;
-  color: #fff;
-  margin-right: 5px;
-}
-
-.file-management-btn-download:disabled {
-  background: #a0aec0;
-  cursor: not-allowed;
-}
-
-.file-management-btn-delete {
-  background: #e53e3e;
-  color: #fff;
+.file-management-btn-cancel:hover {
+    background-color: #c82333;
 }
 
 .file-management-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
 }
 
 .file-management-table th,
 .file-management-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
 }
 
 .file-management-table th {
-  background: #edf2f7;
-  font-weight: bold;
+    background-color: #f2f2f2;
+    color: #555;
+}
+
+.file-management-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.file-management-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+.file-management-btn-download {
+    background-color: #17a2b8;
+    margin-right: 5px;
+}
+
+.file-management-btn-download:hover {
+    background-color: #138496;
+}
+
+.file-management-btn-download:disabled {
+    background-color: #999;
+    cursor: not-allowed;
+}
+
+.file-management-btn-delete {
+    background-color: #dc3545;
+}
+
+.file-management-btn-delete:hover {
+    background-color: #c82333;
+}
+
+.file-management-btn-add-playlist {
+    background-color: #6c757d;
+}
+
+.file-management-btn-add-playlist:hover {
+    background-color: #5a6268;
 }
 
 .file-management-empty {
-  text-align: center;
-  padding: 20px;
-  color: #718096;
+    text-align: center;
+    font-style: italic;
+    color: #888;
 }
 
 .file-management-error {
-  color: #e53e3e;
-  text-align: center;
-  margin-bottom: 20px;
+    color: #dc3545;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 15px;
 }

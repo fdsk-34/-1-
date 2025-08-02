@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import LoadingToast from '../component/LoadingToast';
+import { MusicPlayerContext } from '../context/MusicPlayerContext';
+import LoadingToast from './LoadingToast';
 import axios from 'axios';
 import '../styles/FileManagement.css';
+import { toast } from 'react-toastify';
 
 // 모의 데이터
 const mockFiles = [
@@ -12,11 +14,13 @@ const mockFiles = [
 
 const FileManagement = () => {
   const { user } = useContext(AuthContext);
+  const { addSongToPlaylist } = useContext(MusicPlayerContext); // MusicPlayerContext 추가
   const [files, setFiles] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
     const storedFiles = localStorage.getItem('uploadedFiles');
@@ -50,18 +54,22 @@ const FileManagement = () => {
     const uploadedFile = event.target.files[0];
     if (!uploadedFile) return;
 
-    if (!['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/x-flac'].includes(uploadedFile.type)) {
+    const acceptedTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/x-flac'];
+    if (!acceptedTypes.includes(uploadedFile.type)) {
       setError('지원되는 파일 형식: MP3, WAV, FLAC');
       setSelectedFile(null);
+      setPreviewUrl(null);
       return;
     }
 
+    const newPreviewUrl = URL.createObjectURL(uploadedFile);
     setSelectedFile({
       name: uploadedFile.name,
       size: uploadedFile.size,
       type: uploadedFile.type,
       file: uploadedFile,
     });
+    setPreviewUrl(newPreviewUrl);
     setError(null);
   };
 
@@ -73,7 +81,6 @@ const FileManagement = () => {
     let newFile;
 
     try {
-      // ⭐ 1. API 호출을 먼저 시도 ⭐
       const formData = new FormData();
       formData.append('file', selectedFile.file);
       const res = await axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/api/admin/files/upload`, formData, {
@@ -84,8 +91,8 @@ const FileManagement = () => {
       });
       newFile = res.data;
       setError(null);
+      toast.success('파일이 성공적으로 업로드되었습니다.');
     } catch (err) {
-      // ⭐ 2. API 호출 실패 시 로컬 모의 데이터로 대체 ⭐
       setError(err.message || '파일 업로드에 실패했습니다. 로컬에 저장합니다.');
       newFile = {
         id: `file${files.length + 1}`,
@@ -93,20 +100,26 @@ const FileManagement = () => {
         size: selectedFile.size,
         type: selectedFile.type,
         uploadedAt: new Date().toISOString(),
-        url: `/assets/${selectedFile.name}`,
+        url: URL.createObjectURL(selectedFile.file),
       };
+      toast.info('파일이 로컬에 임시 저장되었습니다.');
     }
 
-    // ⭐ 3. API 성공 또는 실패와 관계없이 로컬 상태 및 저장소 업데이트 ⭐
     updatedFiles = [...files, newFile];
     setFiles(updatedFiles);
     localStorage.setItem('uploadedFiles', JSON.stringify(updatedFiles));
     setSelectedFile(null);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
     setLoading(false);
   };
 
   const handleCancelUpload = () => {
     setSelectedFile(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
     setError(null);
   };
 
@@ -119,13 +132,11 @@ const FileManagement = () => {
     const file = files.find(f => f.id === fileId);
     if (!file) return;
 
-    // ⭐ 1. API 호출을 먼저 시도 ⭐
     axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/api/admin/files/download/${fileId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` },
       responseType: 'blob',
     })
       .then(response => {
-        // API 호출 성공 시: 올바른 MIME 타입으로 Blob 생성 및 다운로드
         const fileBlob = new Blob([response.data], { type: file.type });
         const url = window.URL.createObjectURL(fileBlob);
         const link = document.createElement('a');
@@ -138,10 +149,11 @@ const FileManagement = () => {
         
         window.URL.revokeObjectURL(url);
         setError(null);
+        toast.success(`${file.name} 다운로드 성공!`);
       })
       .catch(err => {
-        // ⭐ 2. API 호출 실패 시 로컬 데이터 다운로드로 대체 ⭐
         setError(err.message || '파일 다운로드에 실패했습니다. 로컬 데이터를 시도합니다.');
+        toast.error('다운로드 실패, 로컬 데이터로 대체합니다.');
         
         const stored = localStorage.getItem('uploadedFiles');
         if (stored) {
@@ -155,6 +167,7 @@ const FileManagement = () => {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            toast.success(`로컬 파일 ${localFile.name} 다운로드 성공!`);
           } else {
             setError('로컬에서도 파일을 찾을 수 없습니다.');
           }
@@ -167,12 +180,15 @@ const FileManagement = () => {
       const updatedFiles = files.filter(file => file.id !== fileId);
       setFiles(updatedFiles);
       localStorage.setItem('uploadedFiles', JSON.stringify(updatedFiles));
+      toast.success('파일이 로컬에서 삭제되었습니다.');
 
       axios.delete(`${import.meta.env.VITE_REACT_APP_API_URL}/api/admin/files/${fileId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` },
       })
+        .then(() => toast.success('파일이 서버에서 삭제되었습니다.'))
         .catch(err => {
           setError(err.message || '파일 삭제에 실패했습니다. 로컬 데이터를 업데이트했습니다.');
+          toast.error('서버 파일 삭제 실패.');
         });
     }
   };
@@ -212,6 +228,11 @@ const FileManagement = () => {
           <p>파일명: {selectedFile.name}</p>
           <p>크기: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
           <p>형식: {selectedFile.type}</p>
+          {previewUrl && (
+            <audio controls src={previewUrl} className="file-management-audio-preview">
+              브라우저가 오디오 미리보기를 지원하지 않습니다.
+            </audio>
+          )}
           <div className="file-management-preview-buttons">
             <button
               onClick={handleFileUpload}
@@ -264,6 +285,12 @@ const FileManagement = () => {
                     className="file-management-btn file-management-btn-delete"
                   >
                     삭제
+                  </button>
+                  <button
+                    onClick={() => addSongToPlaylist(file)}
+                    className="file-management-btn file-management-btn-add-playlist"
+                  >
+                    + 재생목록에 추가
                   </button>
                 </td>
               </tr>
