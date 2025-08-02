@@ -1,168 +1,313 @@
 .file-management-container {
-    width: 90%;
-    max-width: 1200px;
-    margin: 40px auto;
-    padding: 20px;
-    background-color: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .file-management-title {
-    text-align: center;
-    color: #333;
-    margin-bottom: 20px;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 24px;
+  text-align: center;
 }
 
 .file-management-controls {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: center;
+  justify-content: center;
 }
 
-.file-management-search {
-    flex-grow: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 16px;
-    margin-right: 10px;
-}
-
-.file-management-upload-label {
-    display: inline-block;
-    padding: 10px 15px;
-    background-color: #007bff;
-    color: #fff;
-    border-radius: 5px;
-    cursor: pointer;
-    text-align: center;
-    font-weight: bold;
+.file-management-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #2d3748;
+  min-width: 200px;
 }
 
 .file-management-upload-input {
-    display: none;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.9rem;
 }
 
 .file-management-preview {
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 5px;
-    margin-bottom: 20px;
-    border: 1px solid #e9ecef;
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+  position: relative;
 }
 
-.file-management-preview h3 {
-    margin-top: 0;
-    color: #495057;
+.file-management-preview-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 12px;
 }
 
-.file-management-preview p {
-    margin: 5px 0;
-    color: #6c757d;
+.file-management-preview-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
 }
 
-.file-management-audio-preview {
-    width: 100%;
-    margin-top: 10px;
+.file-management-preview-cover {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-management-preview-details {
+  flex: 1;
+  min-width: 200px;
+}
+
+.file-management-preview-details p {
+  font-size: 0.95rem;
+  color: #4a5568;
+  margin-bottom: 8px;
+}
+
+.file-management-preview-details p strong {
+  color: #2d3748;
+}
+
+.file-management-preview-audio {
+  width: 100%;
+  max-width: 300px;
+  margin-top: 8px;
 }
 
 .file-management-preview-buttons {
-    margin-top: 15px;
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .file-management-btn {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 5px;
-    color: #fff;
-    cursor: pointer;
-    font-weight: bold;
-    margin-right: 10px;
-    transition: background-color 0.2s;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
 }
 
 .file-management-btn-upload {
-    background-color: #28a745;
+  background: #3182ce;
+  color: #fff;
 }
 
 .file-management-btn-upload:hover {
-    background-color: #218838;
+  background: #2b6cb0;
 }
 
 .file-management-btn-cancel {
-    background-color: #dc3545;
+  background: #718096;
+  color: #fff;
 }
 
 .file-management-btn-cancel:hover {
-    background-color: #c82333;
+  background: #5a677a;
+}
+
+.file-management-btn-download {
+  background: #38a169;
+  color: #fff;
+}
+
+.file-management-btn-download:hover {
+  background: #2f855a;
+}
+
+.file-management-btn-download:disabled {
+  background: #a0aec0;
+  cursor: not-allowed;
+}
+
+.file-management-btn-add {
+  background: #3182ce;
+  color: #fff;
+}
+
+.file-management-btn-add:hover {
+  background: #2b6cb0;
+}
+
+.file-management-btn-delete {
+  background: #e53e3e;
+  color: #fff;
+}
+
+.file-management-btn-delete:hover {
+  background: #c53030;
+}
+
+.file-management-list {
+  margin-top: 24px;
 }
 
 .file-management-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .file-management-table th,
 .file-management-table td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .file-management-table th {
-    background-color: #f2f2f2;
-    color: #555;
+  background: #edf2f7;
+  font-weight: 600;
+  color: #2d3748;
 }
 
-.file-management-table tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
-
-.file-management-table tr:hover {
-    background-color: #f1f1f1;
-}
-
-.file-management-btn-download {
-    background-color: #17a2b8;
-    margin-right: 5px;
-}
-
-.file-management-btn-download:hover {
-    background-color: #138496;
-}
-
-.file-management-btn-download:disabled {
-    background-color: #999;
-    cursor: not-allowed;
-}
-
-.file-management-btn-delete {
-    background-color: #dc3545;
-}
-
-.file-management-btn-delete:hover {
-    background-color: #c82333;
-}
-
-.file-management-btn-add-playlist {
-    background-color: #6c757d;
-}
-
-.file-management-btn-add-playlist:hover {
-    background-color: #5a6268;
+.file-management-table-cover {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .file-management-empty {
-    text-align: center;
-    font-style: italic;
-    color: #888;
+  text-align: center;
+  padding: 24px;
+  color: #718096;
+  font-size: 1rem;
 }
 
-.file-management-error {
-    color: #dc3545;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 15px;
+/* 커스텀 토스트 스타일 */
+.custom-toast-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+.custom-toast-icon {
+  background: #2d3748;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.custom-toast-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #e53e3e;
+  color: #fff;
+  font-size: 0.75rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-toast-list {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 300px;
+  max-height: 150px;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 8px;
+}
+
+.custom-toast {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.custom-toast-success {
+  background: #38a169;
+  color: #fff;
+}
+
+.custom-toast-error {
+  background: #e53e3e;
+  color: #fff;
+}
+
+.custom-toast-info {
+  background: #3182ce;
+  color: #fff;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .file-management-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .file-management-label {
+    min-width: auto;
+  }
+
+  .file-management-preview-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .file-management-preview-cover {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+  }
+
+  .file-management-preview-audio {
+    max-width: 100%;
+  }
+
+  .file-management-table {
+    font-size: 0.85rem;
+  }
+
+  .file-management-table-cover {
+    width: 40px;
+    height: 40px;
+  }
+
+  .custom-toast-list {
+    width: 250px;
+    max-height: 120px;
+  }
 }

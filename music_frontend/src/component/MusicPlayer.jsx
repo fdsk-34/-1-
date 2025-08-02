@@ -1,994 +1,509 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState, useCallback, useContext, useMemo } from 'react';
 import { MusicPlayerContext } from '../context/MusicPlayerContext';
-import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
-import toast from 'react-hot-toast';
-import Equalizer from '../component/Equalizer';
+import { AuthContext } from '../context/AuthContext';
 import '../styles/MusicPlayer.css';
 import noSongImage from '../assets/default-cover.jpg';
+import Equalizer from './Equalizer';
 import {
-  FaPlay, FaPause, FaStepBackward, FaStepForward, FaRandom,
-  FaVolumeUp, FaVolumeMute, FaListUl, FaPlus, FaTimes, FaGlobe, FaLock
+    FaPlay, FaPause, FaStepBackward, FaStepForward, FaRandom,
+    FaVolumeUp, FaVolumeMute, FaListUl, FaPlus, FaTimes, FaPen, FaTrash
 } from 'react-icons/fa';
 import { MdRepeat, MdRepeatOne } from 'react-icons/md';
+
+// IndexedDB 관련 헬퍼 함수들 (기존 로직 유지)
+const dbName = 'musicPlayerDB';
+const storeName = 'uploadedFiles';
+
+const openDB = () => {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, 1);
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(storeName)) {
+                db.createObjectStore(storeName, { keyPath: 'id' });
+            }
+        };
+        request.onsuccess = (event) => resolve(event.target.result);
+        request.onerror = (event) => reject(event.target.error);
+    });
+};
+
+const saveFileToDB = async (fileObj) => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.put(fileObj);
+        request.onsuccess = () => resolve();
+        request.onerror = (event) => reject(event.target.error);
+    });
+};
 
 // Helper for localStorage
 const LOCAL_STORAGE_KEY_USER_PLAYLISTS = 'myMusicApp_userPlaylists';
 const LOCAL_STORAGE_KEY_SHARED_PLAYLISTS = 'myMusicApp_sharedPlaylists';
 
 const getPlaylistsFromLocalStorage = (key) => {
-  try {
-    const data = localStorage.getItem(key);
-    const playlists = data ? JSON.parse(data) : [];
-    return playlists.map(p => ({
-      ...p,
-      ownerId: String(p.ownerId || '임시 목록'),
-      songs: Array.isArray(p.songs) ? p.songs : [],
-      isPublic: p.isPublic || false
-    }));
-  } catch (error) {
-    console.error(`Error reading from localStorage (${key}):`, error);
-    return [];
-  }
+    try {
+        const data = localStorage.getItem(key);
+        const playlists = data ? JSON.parse(data) : [];
+        return playlists.map(p => ({
+            ...p,
+            ownerId: String(p.ownerId || '임시 목록'),
+            songs: Array.isArray(p.songs) ? p.songs : [],
+            isPublic: p.isPublic || false
+        }));
+    } catch (error) {
+        console.error(`Error reading from localStorage (${key}):`, error);
+        return [];
+    }
 };
 
 const savePlaylistsToLocalStorage = (key, playlists) => {
-  try {
-    const normalizedPlaylists = playlists.map(p => ({
-      ...p,
-      ownerId: String(p.ownerId || '임시 목록'),
-      songs: Array.isArray(p.songs) ? p.songs : [],
-      isPublic: p.isPublic || false
-    }));
-    localStorage.setItem(key, JSON.stringify(normalizedPlaylists));
-  } catch (error) {
-    console.error(`Error writing to localStorage (${key}):`, error);
-  }
-};
-
-// 가사 데이터 (예시)
-const lyricsData = [
-  { time: 0, text: "인트로 시작 🎶" },
-  { time: 5, text: "처음 가사가 시작됩니다" },
-  { time: 10, text: "계속 이어지는 멜로디" },
-  { time: 15, text: "후렴이 다가오네요" },
-  { time: 20, text: "감정이 최고조에 달합니다" },
-  { time: 25, text: "곡이 거의 끝나갑니다" },
-  { time: 30, text: "마무리 단계!" },
-];
-
-const MusicPlayer = () => {
-  const navigate = useNavigate();
-  const { playlist, currentIndex, playSong, audioRef, updateAudioSrc, setPlaylist, initializeTestSong, addSongToPlaylist } = React.useContext(MusicPlayerContext);
-  const { user } = useAuth();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.5);
-  const [isMuted, setIsMuted] = useState(false);
-  const [repeatMode, setRepeatMode] = useState('none');
-  const [shuffleMode, setShuffleMode] = useState(false);
-  const [showPlaylistPopup, setShowPlaylistPopup] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [currentLyric, setCurrentLyric] = useState('');
-  const [playbackQueue, setPlaybackQueue] = useState([]);
-  const [currentQueueIndex, setCurrentQueueIndex] = useState(0);
-  const [userPlaylists, setUserPlaylists] = useState([]);
-  const [sharedPlaylists, setSharedPlaylists] = useState([]);
-  const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [editingPlaylistId, setEditingPlaylistId] = useState(null);
-  const [editingPlaylistName, setEditingPlaylistName] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [errorMessage, setErrorMessage] = useState('');
-  const popupRef = useRef(null);
-  const lastSearchTerm = useRef(null);
-  const lastPlaylistName = useRef(null);
-
-  const API_BASE_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:8080';
-  console.log('API_BASE_URL:', API_BASE_URL);
-
-  // Initialize test song on component mount
-  useEffect(() => {
-    if (!playlist.length) {
-      console.log('Initializing test song');
-      initializeTestSong();
-    }
-  }, [initializeTestSong, playlist.length]);
-
-  const displayError = useCallback((message) => {
-    if (showPlaylistPopup) {
-      setErrorMessage(message);
-    } else {
-      toast.error(message);
-    }
-  }, [showPlaylistPopup]);
-
-  const currentSong = useMemo(() => {
-    console.log('Current song calculation:', {
-      shuffleMode,
-      playbackQueueLength: playbackQueue.length,
-      currentQueueIndex,
-      playlistLength: playlist.length,
-      currentIndex
-    });
-    const song = shuffleMode && playbackQueue.length > 0
-      ? playbackQueue[currentQueueIndex] || {
-          id: null,
-          title: '재생 중인 곡 없음',
-          artist: '선택해주세요',
-          albumId: null,
-          coverUrl: noSongImage,
-          audioUrl: ''
-        }
-      : playlist[currentIndex] || {
-          id: null,
-          title: '재생 중인 곡 없음',
-          artist: '선택해주세요',
-          albumId: null,
-          coverUrl: noSongImage,
-          audioUrl: ''
-        };
-    console.log('Selected song:', song);
-    return song;
-  }, [playlist, currentIndex, shuffleMode, playbackQueue, currentQueueIndex]);
-
-  const handlePrevSong = useCallback(() => {
-    let targetIndex;
-    if (repeatMode === 'one') {
-      targetIndex = currentQueueIndex;
-    } else if (shuffleMode) {
-      targetIndex = (currentQueueIndex - 1 + playbackQueue.length) % playbackQueue.length;
-    } else {
-      targetIndex = (currentIndex - 1 + playlist.length) % playlist.length;
-    }
-    if (shuffleMode && playbackQueue.length > 0) {
-      setCurrentQueueIndex(targetIndex);
-      playSong(playlist.findIndex(s => s.id === playbackQueue[targetIndex].id));
-    } else {
-      playSong(targetIndex);
-    }
-    console.log('Previous song, new index:', targetIndex);
-  }, [repeatMode, shuffleMode, currentQueueIndex, playbackQueue, currentIndex, playlist, playSong]);
-
-  const handleNextSong = useCallback(() => {
-    let targetIndex;
-    if (repeatMode === 'one') {
-      targetIndex = currentQueueIndex;
-    } else if (shuffleMode) {
-      targetIndex = (currentQueueIndex + 1) % playbackQueue.length;
-      if (playbackQueue.length > 0 && targetIndex === 0 && repeatMode === 'none') {
-        setIsPlaying(false);
-        return;
-      }
-    } else {
-      targetIndex = (currentIndex + 1) % playlist.length;
-      if (playlist.length > 0 && targetIndex === 0 && repeatMode === 'none') {
-        setIsPlaying(false);
-        return;
-      }
-    }
-    if (shuffleMode && playbackQueue.length > 0) {
-      setCurrentQueueIndex(targetIndex);
-      playSong(playlist.findIndex(s => s.id === playbackQueue[targetIndex].id));
-    } else {
-      playSong(targetIndex);
-    }
-    console.log('Next song, new index:', targetIndex);
-  }, [repeatMode, shuffleMode, currentQueueIndex, playbackQueue, currentIndex, playlist, playSong]);
-
-  const handleTogglePlay = useCallback(() => {
-    if (!currentSong.id || !currentSong.audioUrl) {
-      displayError('재생할 곡을 선택해주세요.');
-      console.log('No valid song:', currentSong);
-      return;
-    }
-    const audio = audioRef.current;
-    if (!audio) {
-      displayError('오디오 요소를 찾을 수 없습니다.');
-      console.error('audioRef is not initialized');
-      return;
-    }
-    setIsPlaying(prev => {
-      console.log('Toggling play, current isPlaying:', prev, 'song:', currentSong.title);
-      if (!prev) {
-        audio.play().catch(error => {
-          console.error('Audio play failed:', error);
-          displayError('오디오 재생에 실패했습니다.');
-          return false;
-        });
-      } else {
-        audio.pause();
-      }
-      return !prev;
-    });
-  }, [currentSong, displayError, audioRef]);
-
-  const handleProgressChange = useCallback((value) => {
-    console.log('Progress changed to:', value);
-    setProgress(value);
-    const audio = audioRef.current;
-    if (audio && audio.duration && isPlaying) {
-      const time = (value / 100) * audio.duration;
-      audio.currentTime = time;
-    }
-  }, [audioRef, isPlaying]);
-
-  const toggleMute = useCallback(() => {
-    setIsMuted(prev => {
-      const newMuted = !prev;
-      if (audioRef.current) {
-        audioRef.current.muted = newMuted;
-      }
-      return newMuted;
-    });
-  }, [audioRef]);
-
-  const toggleRepeat = useCallback(() => {
-    const modes = ['none', 'all', 'one'];
-    setRepeatMode(modes[(modes.indexOf(repeatMode) + 1) % modes.length]);
-  }, [repeatMode]);
-
-  const toggleShuffle = useCallback(() => {
-    setShuffleMode(prev => !prev);
-  }, []);
-
-  const togglePlaylistPopup = useCallback(() => {
-    setShowPlaylistPopup(prev => !prev);
-    setErrorMessage('');
-  }, []);
-
-  const handleAlbumClick = useCallback(() => {
-    if (currentSong.albumId) navigate(`/album/${currentSong.albumId}`);
-  }, [currentSong.albumId, navigate]);
-
-  const fetchLyricsForCurrentSong = useCallback(async (songId) => {
-    console.log(`Fetching lyrics for song ID: ${songId}`);
-  }, []);
-
-  useEffect(() => {
-    if (currentSong.id) {
-      setCurrentLyric('');
-      fetchLyricsForCurrentSong(currentSong.id);
-    }
-  }, [currentSong.id, fetchLyricsForCurrentSong]);
-
-  useEffect(() => {
-    if (user?.id) {
-      const fetchUserPlaylists = async () => {
-        try {
-          const response = await axios.get(`${API_BASE_URL}/api/playlists`, {
-            params: { userId: user.id },
-            headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
-          });
-          setUserPlaylists(response.data.map(p => ({
+    try {
+        const normalizedPlaylists = playlists.map(p => ({
             ...p,
-            ownerId: String(p.user?.nickname || '임시 목록'),
-            songs: Array.isArray(p.songs) ? p.songs : [],
-            isPublic: p.isPublic || false
-          })));
-        } catch (err) {
-          console.error('내 플레이리스트 조회 실패:', err.response?.data || err.message);
-          displayError('플레이리스트를 불러오지 못했습니다. 로컬 데이터를 사용합니다.');
-          setUserPlaylists(getPlaylistsFromLocalStorage(`${LOCAL_STORAGE_KEY_USER_PLAYLISTS}_${user.id}`));
-        }
-      };
-      fetchUserPlaylists();
-      setSharedPlaylists(getPlaylistsFromLocalStorage(`${LOCAL_STORAGE_KEY_SHARED_PLAYLISTS}_${user.id}`));
-    } else {
-      displayError('로그인이 필요합니다.');
-    }
-  }, [user?.id, API_BASE_URL, displayError]);
-
-  useEffect(() => {
-    if (user?.id) {
-      savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_USER_PLAYLISTS}_${user.id}`, userPlaylists);
-    }
-  }, [userPlaylists, user?.id]);
-
-  useEffect(() => {
-    if (user?.id) {
-      savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_SHARED_PLAYLISTS}_${user.id}`, sharedPlaylists);
-    }
-  }, [sharedPlaylists, user?.id]);
-
-  useEffect(() => {
-    if (shuffleMode && playlist.length > 0) {
-      const shuffledPlaylist = [...playlist].sort(() => Math.random() - 0.5);
-      setPlaybackQueue(shuffledPlaylist);
-      const currentSongInShuffledQueue = shuffledPlaylist.findIndex(song => song.id === currentSong.id);
-      setCurrentQueueIndex(currentSongInShuffledQueue !== -1 ? currentSongInShuffledQueue : 0);
-    } else {
-      setPlaybackQueue([]);
-      setCurrentQueueIndex(0);
-    }
-  }, [shuffleMode, playlist, currentSong.id]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) {
-      console.error('audioRef is not initialized');
-      return;
-    }
-    if (!currentSong.id || !currentSong.audioUrl) {
-      console.log('No valid song or audio URL:', currentSong);
-      setIsPlaying(false);
-      audio.src = '';
-      audio.load();
-      setProgress(0);
-      setCurrentLyric('');
-      return;
-    }
-    if (audio.src !== currentSong.audioUrl) {
-      updateAudioSrc(currentSong.audioUrl);
-      audio.load();
-    }
-    audio.volume = isMuted ? 0 : volume;
-    if (isPlaying) {
-      audio.play().catch(error => {
-        console.error('Audio play failed:', error);
-        displayError('오디오 재생에 실패했습니다.');
-        setIsPlaying(false);
-      });
-    } else {
-      audio.pause();
-    }
-    const handleTimeUpdate = () => {
-      if (audio.duration) {
-        setProgress((audio.currentTime / audio.duration) * 100);
-      }
-      const matched = lyricsData.findLast(l => audio.currentTime >= l.time);
-      if (matched && matched.text !== currentLyric) {
-        setCurrentLyric(matched.text);
-      } else if (!matched && currentLyric !== '') {
-        setCurrentLyric('');
-      }
-    };
-    const handleEnded = () => {
-      setIsPlaying(false);
-      if (repeatMode === 'one') {
-        audio.currentTime = 0;
-        audio.play().catch(error => {
-          console.error('Replay failed:', error);
-          displayError('곡 재생에 실패했습니다.');
-        });
-        setIsPlaying(true);
-      } else {
-        handleNextSong();
-      }
-    };
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [isPlaying, volume, isMuted, currentSong, audioRef, updateAudioSrc, repeatMode, currentLyric, handleNextSong, displayError]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (popupRef.current && !popupRef.current.contains(e.target)) {
-        setShowPlaylistPopup(false);
-        setErrorMessage('');
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const logPlay = async () => {
-      if (currentSong.id && user && isPlaying) {
-        try {
-          await axios.post(`${API_BASE_URL}/api/histories`, {
-            userId: user.id,
-            songId: currentSong.id,
-            playedAt: new Date().toISOString(),
-          }, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
-          });
-          console.log(`재생 기록 생성 성공: ${currentSong.title}`);
-        } catch (err) {
-          console.error('재생 기록 생성 실패:', err.response?.data || err.message);
-          displayError('재생 기록 저장에 실패했습니다.');
-        }
-      }
-    };
-    if (isPlaying) {
-      const logTimeout = setTimeout(logPlay, 1000);
-      return () => clearTimeout(logTimeout);
-    }
-  }, [currentSong.id, user, isPlaying, API_BASE_URL, currentSong.title, displayError]);
-
-  const handleAddPlaylist = useCallback(async () => {
-    if (!user?.id) {
-      displayError('사용자 정보가 없습니다.');
-      return;
-    }
-    if (newPlaylistName.trim() === '') {
-      displayError('재생 목록 이름을 입력해주세요.');
-      return;
-    }
-    if (newPlaylistName.trim() === lastPlaylistName.current) {
-      console.log('Skipped duplicate playlist creation:', newPlaylistName);
-      displayError('이미 동일한 이름으로 요청이 처리되었습니다.');
-      return;
-    }
-    lastPlaylistName.current = newPlaylistName.trim();
-    const newPlaylist = {
-      id: crypto.randomUUID(),
-      title: newPlaylistName.trim(),
-      ownerId: String(user.nickname || '임시 목록'),
-      songs: [],
-      createdAt: new Date().toISOString(),
-      isPublic: false,
-    };
-    setUserPlaylists(prev => [...prev, newPlaylist]);
-    savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_USER_PLAYLISTS}_${user.id}`, [...userPlaylists, newPlaylist]);
-    setNewPlaylistName('');
-    toast.success(`'${newPlaylist.title}' 재생 목록이 생성되었습니다.`);
-    try {
-      const response = await axios.post(`${API_BASE_URL}/api/playlists`, {
-        title: newPlaylist.title,
-        isPublic: newPlaylist.isPublic,
-        userId: user.id
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
-      });
-      setUserPlaylists(prev =>
-        prev.map(p => (p.id === newPlaylist.id ? { ...p, id: response.data.id } : p))
-      );
-      savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_USER_PLAYLISTS}_${user.id}`, 
-        userPlaylists.map(p => (p.id === newPlaylist.id ? { ...p, id: response.data.id } : p))
-      );
-    } catch (err) {
-      console.error('백엔드 플레이리스트 생성 실패:', err.response?.data || err.message);
-      displayError('백엔드 연결 실패. 로컬에 저장되었습니다.');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, newPlaylistName, userPlaylists, API_BASE_URL, displayError]);
-
-  const startEditingPlaylist = useCallback((playlistId, currentName) => {
-    setEditingPlaylistId(playlistId);
-    setEditingPlaylistName(currentName);
-  }, []);
-
-  const handleSavePlaylistName = useCallback(async (playlistId, isShared = false) => {
-    if (editingPlaylistName.trim() === '') {
-      displayError('재생 목록 이름을 입력해주세요.');
-      return;
-    }
-    if (!isShared) {
-      setUserPlaylists(prev =>
-        prev.map(p => (p.id === playlistId ? { ...p, title: editingPlaylistName.trim() } : p))
-      );
-      savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_USER_PLAYLISTS}_${user?.id}`, 
-        userPlaylists.map(p => (p.id === playlistId ? { ...p, title: editingPlaylistName.trim() } : p))
-      );
-      try {
-        await axios.put(`${API_BASE_URL}/api/playlists/${playlistId}`, {
-          title: editingPlaylistName.trim(),
-          userId: user?.id,
-          isPublic: userPlaylists.find(p => p.id === playlistId)?.isPublic
-        }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
-        });
-        toast.success('재생 목록 이름이 변경되었습니다.');
-      } catch (err) {
-        console.error('백엔드 플레이리스트 이름 업데이트 실패:', err.response?.data || err.message);
-        displayError('백엔드 연결 실패. 로컬에 저장되었습니다.');
-      }
-    } else {
-      setSharedPlaylists(prev =>
-        prev.map(p => (p.id === playlistId ? { ...p, title: editingPlaylistName.trim() } : p))
-      );
-      savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_SHARED_PLAYLISTS}_${user?.id}`, 
-        sharedPlaylists.map(p => (p.id === playlistId ? { ...p, title: editingPlaylistName.trim() } : p))
-      );
-      toast.success('공유 플레이리스트 이름이 로컬에서 변경되었습니다.');
-    }
-    setEditingPlaylistId(null);
-    setEditingPlaylistName('');
-  }, [editingPlaylistName, user?.id, userPlaylists, sharedPlaylists, API_BASE_URL, displayError]);
-
-  const handleDeletePlaylist = useCallback(async (playlistIdToDelete, isShared = false) => {
-    if (!window.confirm('정말로 이 재생 목록을 삭제하시겠습니까?')) {
-      return;
-    }
-    if (isShared) {
-      setSharedPlaylists(prev => prev.filter(p => p.id !== playlistIdToDelete));
-      savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_SHARED_PLAYLISTS}_${user?.id}`, 
-        sharedPlaylists.filter(p => p.id !== playlistIdToDelete)
-      );
-      toast.success('공유 플레이리스트가 삭제되었습니다.');
-    } else {
-      setUserPlaylists(prev => prev.filter(p => p.id !== playlistIdToDelete));
-      savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_USER_PLAYLISTS}_${user?.id}`, 
-        userPlaylists.filter(p => p.id !== playlistIdToDelete)
-      );
-      try {
-        await axios.delete(`${API_BASE_URL}/api/playlists/${playlistIdToDelete}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
-        });
-        toast.success('플레이리스트가 삭제되었습니다.');
-      } catch (err) {
-        console.error('백엔드 플레이리스트 삭제 실패:', err.response?.data || err.message);
-        displayError('백엔드 연결 실패. 로컬에서 삭제되었습니다.');
-      }
-    }
-  }, [user?.id, userPlaylists, sharedPlaylists, API_BASE_URL, displayError]);
-
-  const togglePlaylistVisibility = useCallback(async (playlistId) => {
-    if (!user?.id) {
-      displayError('로그인이 필요합니다.');
-      return;
-    }
-    const playlist = userPlaylists.find(p => p.id === playlistId);
-    if (!playlist) {
-      displayError('플레이리스트를 찾을 수 없습니다.');
-      return;
-    }
-    const newVisibility = !playlist.isPublic;
-    setUserPlaylists(prev =>
-      prev.map(p => (p.id === playlistId ? { ...p, isPublic: newVisibility } : p))
-    );
-    savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_USER_PLAYLISTS}_${user.id}`, 
-      userPlaylists.map(p => (p.id === playlistId ? { ...p, isPublic: newVisibility } : p))
-    );
-    toast.success(`플레이리스트가 ${newVisibility ? '공개' : '비공개'}로 설정되었습니다.`);
-    try {
-      await axios.put(`${API_BASE_URL}/api/playlists/${playlistId}/visibility`, {
-        isPublic: newVisibility
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
-      });
-    } catch (err) {
-      console.error('백엔드 공개/비공개 전환 실패:', err.response?.data || err.message);
-      displayError('백엔드 연결 실패. 로컬 데이터로 유지됩니다.');
-    }
-  }, [user?.id, userPlaylists, API_BASE_URL, displayError]);
-
-  const handleLoadPlaylist = useCallback(async (playlistToLoad) => {
-    if (!setPlaylist) {
-      displayError('재생 목록을 로드할 수 없습니다.');
-      return;
-    }
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/playlists/${playlistToLoad.id}/tracks`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
-      });
-      const songs = response.data.map(track => ({
-        id: track.song.id,
-        title: track.song.title,
-        artist: track.song.artist,
-        duration: track.song.duration,
-        audioUrl: track.song.audioUrl || '',
-        coverUrl: track.song.coverUrl || noSongImage
-      }));
-      setPlaylist(songs);
-      playSong(0);
-      setShowPlaylistPopup(false);
-      setErrorMessage('');
-      toast.success(`'${playlistToLoad.title}' 플레이리스트가 로드되었습니다.`);
-    } catch (err) {
-      console.error('플레이리스트 트랙 조회 실패:', err.response?.data || err.message);
-      displayError('백엔드 연결 실패. 로컬 데이터를 사용합니다.');
-      setPlaylist(JSON.parse(JSON.stringify(playlistToLoad.songs || [])));
-      playSong(0);
-      setShowPlaylistPopup(false);
-    }
-  }, [setPlaylist, playSong, API_BASE_URL, displayError]);
-
-  const handleSearchPublicPlaylists = useCallback(async () => {
-    setSearchResults([]);
-    setErrorMessage('');
-    if (!searchTerm.trim()) {
-      displayError('검색어를 입력해주세요.');
-      return;
-    }
-    if (searchTerm.trim() === lastSearchTerm.current) {
-      console.log('Skipped duplicate search request:', searchTerm);
-      displayError('이미 동일한 검색어가 처리되었습니다.');
-      return;
-    }
-    lastSearchTerm.current = searchTerm.trim();
-    let publicPlaylists = [];
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/playlists/public`, {
-        params: { keyword: searchTerm, page: 0, size: 10 },
-        headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
-      });
-      publicPlaylists = (response.data.content || response.data || [])
-        .filter(p => p.isPublic)
-        .map(p => ({
-          ...p,
-          ownerId: String(p.user?.nickname || p.ownerId || '임시 목록'),
-          songs: Array.isArray(p.songs) ? p.songs : []
-        }));
-      if (publicPlaylists.length === 0) {
-        console.log('No public playlists from backend');
-      }
-    } catch (err) {
-      console.error('공개 플레이리스트 검색 실패:', err.response?.data || err.message);
-      displayError('백엔드 연결 실패. 로컬 데이터를 검색하고 공유 플레이리스트로 가져옵니다.');
-      const allPlaylists = [];
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith(LOCAL_STORAGE_KEY_USER_PLAYLISTS) || key.startsWith(LOCAL_STORAGE_KEY_SHARED_PLAYLISTS)) {
-          const playlists = getPlaylistsFromLocalStorage(key);
-          allPlaylists.push(...playlists.map(p => ({
-            ...p,
-            isShared: key.startsWith(LOCAL_STORAGE_KEY_SHARED_PLAYLISTS)
-          })));
-        }
-      });
-      const localPublicPlaylists = allPlaylists
-        .filter(p => p.isPublic && p.title.toLowerCase().includes(searchTerm.toLowerCase()))
-        .map(p => ({
-          ...p,
-          ownerId: String(p.ownerId || '임시 목록')
-        }));
-      console.log('Fetched local public playlists:', localPublicPlaylists.length);
-      if (localPublicPlaylists.length > 0 && user?.id) {
-        const newSharedPlaylists = localPublicPlaylists
-          .filter(p => !sharedPlaylists.some(sp => sp.sharedFrom === p.id || sp.id === p.id))
-          .map(p => ({
-            id: crypto.randomUUID(),
-            title: p.title,
             ownerId: String(p.ownerId || '임시 목록'),
             songs: Array.isArray(p.songs) ? p.songs : [],
-            createdAt: new Date().toISOString(),
-            isPublic: false,
-            sharedFrom: p.id
-          }));
-        if (newSharedPlaylists.length > 0) {
-          setSharedPlaylists(prev => [...prev, ...newSharedPlaylists]);
-          savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_SHARED_PLAYLISTS}_${user.id}`, [...sharedPlaylists, ...newSharedPlaylists]);
-          toast.success(`${newSharedPlaylists.length}개의 로컬 공개 플레이리스트를 공유 플레이리스트로 가져왔습니다.`);
-        } else {
-          console.log('No new local public playlists to import');
-          displayError('가져올 수 있는 새로운 로컬 공개 플레이리스트가 없습니다.');
+            isPublic: p.isPublic || false
+        }));
+        localStorage.setItem(key, JSON.stringify(normalizedPlaylists));
+    } catch (error) {
+        console.error(`Error writing to localStorage (${key}):`, error);
+    }
+};
+
+// 가사 데이터 (더미용)
+const lyricsData = {
+    "곡1": "가사1 입니다...",
+    "곡2": "가사2 입니다...",
+    "곡3": "가사3 입니다...",
+};
+
+const MusicPlayer = () => {
+    const {
+        playlist, playSong, audioRef, removeSongFromPlaylist,
+        currentSong, togglePlayPause, isPlaying, nextSong, prevSong, addSongToPlaylist
+    } = useContext(MusicPlayerContext);
+    const { user } = useContext(AuthContext);
+
+    const [volume, setVolume] = useState(0.5);
+    const [isMuted, setIsMuted] = useState(false);
+    const [repeatMode, setRepeatMode] = useState('none');
+    const [shuffleMode, setShuffleMode] = useState(false);
+    const [showPlaylistPopup, setShowPlaylistPopup] = useState(false);
+    const [progress, setProgress] = useState(0);
+
+    const [userPlaylists, setUserPlaylists] = useState([]);
+    const [sharedPlaylists, setSharedPlaylists] = useState([]);
+    const [newPlaylistName, setNewPlaylistName] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [isEditingName, setIsEditingName] = useState(null);
+    const [editingName, setEditingName] = useState('');
+    const [lyrics, setLyrics] = useState('');
+
+    const fileInputRef = useRef(null);
+    const popupRef = useRef(null);
+
+    // 메타데이터에서 가사를 가져오는 함수 (시뮬레이션)
+    const getLyricsFromMetadata = (song) => {
+        if (!song) return '재생 중인 곡이 없습니다.';
+        if (song.isLocal) {
+            // 실제로는 여기에 노래 파일 메타데이터(예: ID3 태그)를 파싱하는 로직이 들어갑니다.
+            // 여기서는 로컬 파일임을 표시하는 더미 가사를 반환합니다.
+            return `[로컬 파일] ${song.name} - 가사 메타데이터를 불러오는 중...`;
         }
-      }
-      publicPlaylists = [...new Map([...publicPlaylists, ...localPublicPlaylists].map(p => [p.id, p])).values()];
-    }
-    setSearchResults(publicPlaylists);
-    if (publicPlaylists.length === 0) {
-      displayError('검색된 공개 플레이리스트가 없습니다.');
-    } else {
-      toast.success('플레이리스트 검색 완료');
-    }
-  }, [searchTerm, API_BASE_URL, displayError, sharedPlaylists, user?.id]);
+        // 로컬 파일이 아니면 더미 데이터에서 가사를 찾습니다.
+        return lyricsData[song.name] || '가사가 없습니다.';
+    };
 
-  const handleImportPlaylist = useCallback(async (playlistToImport) => {
-    if (!user?.id) {
-      displayError('로그인이 필요합니다.');
-      return;
-    }
-    const alreadyImported = sharedPlaylists.some(p => p.sharedFrom === playlistToImport.id || p.id === playlistToImport.id);
-    if (alreadyImported) {
-      displayError('이미 가져온 플레이리스트입니다.');
-      return;
-    }
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/playlists/${playlistToImport.id}/tracks`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('jwt')}` }
-      });
-      const songs = response.data.map(track => ({
-        id: track.song.id,
-        title: track.song.title,
-        artist: track.song.artist,
-        duration: track.song.duration,
-        audioUrl: track.song.audioUrl || '',
-        coverUrl: track.song.coverUrl || noSongImage
-      }));
-      const importedPlaylist = {
-        id: crypto.randomUUID(),
-        title: playlistToImport.title,
-        ownerId: String(playlistToImport.ownerId || '임시 목록'),
-        songs,
-        createdAt: new Date().toISOString(),
-        isPublic: false,
-        sharedFrom: playlistToImport.id,
-      };
-      setSharedPlaylists(prev => [...prev, importedPlaylist]);
-      savePlaylistsToLocalStorage(`${LOCAL_STORAGE_KEY_SHARED_PLAYLISTS}_${user.id}`, [...sharedPlaylists, importedPlaylist]);
-      toast.success(`'${playlistToImport.title}' 플레이리스트를 성공적으로 가져왔습니다.`);
-      setSearchTerm('');
-      setSearchResults([]);
-      setErrorMessage('');
-      lastSearchTerm.current = null;
-    } catch (err) {
-      console.error('플레이리스트 가져오기 실패:', err.response?.data || err.message);
-      displayError('백엔드 연결 실패.');
-    }
-  }, [user?.id, sharedPlaylists, API_BASE_URL, displayError]);
+    useEffect(() => {
+        setUserPlaylists(getPlaylistsFromLocalStorage(LOCAL_STORAGE_KEY_USER_PLAYLISTS));
+        setSharedPlaylists(getPlaylistsFromLocalStorage(LOCAL_STORAGE_KEY_SHARED_PLAYLISTS));
+    }, []);
 
-  const handleMorePublicPlaylists = useCallback(() => {
-    navigate('/history');
-  }, [navigate]);
+    // 팝업 외부 클릭 시 닫기
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (popupRef.current && !popupRef.current.contains(event.target) && !document.querySelector('.playlist-toggle-button').contains(event.target)) {
+                setShowPlaylistPopup(false);
+            }
+        };
 
-  const safeOwnerId = useCallback((ownerId) => {
-    const id = ownerId == null || typeof ownerId !== 'string' ? '임시 목록' : ownerId;
-    return id.length > 6 ? id.substring(0, 6) + '...' : id;
-  }, []);
+        if (showPlaylistPopup) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
 
-  const handleAddSongToPlaylist = useCallback((playlistId, song, isShared = false) => {
-    console.log('handleAddSongToPlaylist:', { playlistId, song, isShared });
-    if (!song.id) {
-      displayError('재생 중인 곡이 없습니다.');
-      return;
-    }
-    const result = addSongToPlaylist(playlistId, song, userPlaylists, setUserPlaylists, sharedPlaylists, setSharedPlaylists, user, isShared);
-    if (result.success) {
-      toast.success(result.message);
-    } else {
-      displayError(result.message);
-    }
-  }, [user, userPlaylists, setUserPlaylists, sharedPlaylists, setSharedPlaylists, addSongToPlaylist, displayError]);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showPlaylistPopup]);
 
-  return (
-    <div className="music-player-bar">
-      <div className="music-player-left">
-        <img src={currentSong.coverUrl} alt="cover" className="music-player-album-cover" onClick={handleAlbumClick} />
-        <div className="music-player-text-details">
-          <div className="music-player-song-title">{currentSong.title}</div>
-          <div className="music-player-song-artist">{currentSong.artist}</div>
-        </div>
-        <div className="music-player-lyrics-box">
-          {currentLyric}
-        </div>
-      </div>
-      <div className="music-player-controls-area">
-        <div className="music-player-buttons">
-          <button onClick={toggleShuffle} className={`control-button ${shuffleMode ? 'active' : ''}`}>
-            <FaRandom className="icon-style" style={{ color: shuffleMode ? '#4B0082' : '#b3b3b3' }} />
-          </button>
-          <button onClick={handlePrevSong} className="control-button">
-            <FaStepBackward className="icon-style" />
-          </button>
-          <button onClick={handleTogglePlay} className="control-button play-button">
-            {isPlaying ? <FaPause className="icon-style" /> : <FaPlay className="icon-style" />}
-          </button>
-          <button onClick={handleNextSong} className="control-button">
-            <FaStepForward className="icon-style" />
-          </button>
-          <button onClick={toggleRepeat} className={`control-button ${repeatMode !== 'none' ? 'active' : ''}`}>
-            {repeatMode === 'none' ? (
-              <MdRepeat className="icon-style" style={{ color: '#b3b3b3' }} />
-            ) : repeatMode === 'all' ? (
-              <MdRepeat className="icon-style" />
-            ) : (
-              <MdRepeatOne className="icon-style" />
-            )}
-          </button>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={progress}
-          onChange={(e) => handleProgressChange(parseInt(e.target.value))}
-          className="music-player-progress-bar"
-        />
-      </div>
-      <div className="music-player-extra-controls">
-        <Equalizer mode="bounce-always" isPlaying={isPlaying} barCount={40} />
-        <div className="volume-control-wrapper">
-          <button onClick={toggleMute} className="volume-toggle-button">
-            {isMuted || (audioRef.current && audioRef.current.volume === 0) ? <FaVolumeMute className="icon-style" /> : <FaVolumeUp className="icon-style" />}
-          </button>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={isMuted ? 0 : volume}
-            onChange={(e) => {
-              setVolume(parseFloat(e.target.value));
-              if (audioRef.current) {
-                audioRef.current.volume = parseFloat(e.target.value);
-              }
-              if (isMuted) setIsMuted(false);
-            }}
-            className="volume-slider"
-          />
-          <span className="volume-level">{`${Math.round(volume * 100)}%`}</span>
-        </div>
-        <button onClick={togglePlaylistPopup} className="playlist-toggle-button">
-          <FaListUl className="icon-style" />
-        </button>
-      </div>
-      {showPlaylistPopup && (
-        <div className="playlist-popup" ref={popupRef}>
-          <div className="playlist-header">
-            <input
-              type="text"
-              placeholder="새 재생 목록 이름"
-              value={newPlaylistName}
-              onChange={(e) => setNewPlaylistName(e.target.value)}
-              onKeyPress={(e) => { if (e.key === 'Enter') handleAddPlaylist(); }}
-              className="playlist-input"
-            />
-            <button onClick={handleAddPlaylist} className="popup-button">
-              <FaPlus className="icon-style-popup" />
-            </button>
-          </div>
-          <div className="playlist-section">
-            <h5>내 재생 목록</h5>
-            <ul>
-              {userPlaylists.length === 0 ? (
-                <li>생성된 재생 목록이 없습니다.</li>
-              ) : (
-                userPlaylists.map((playlistItem) => (
-                  <li key={playlistItem.id}>
-                    <div className="playlist-item-title-wrapper">
-                      {editingPlaylistId === playlistItem.id ? (
+    // 가사 업데이트 훅
+    useEffect(() => {
+        setLyrics(getLyricsFromMetadata(currentSong));
+    }, [currentSong]);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const updateProgress = () => {
+            if (!isNaN(audio.duration) && audio.duration > 0) {
+                setProgress((audio.currentTime / audio.duration) * 100);
+            } else {
+                setProgress(0);
+            }
+        };
+
+        audio.addEventListener('timeupdate', updateProgress);
+        return () => {
+            audio.removeEventListener('timeupdate', updateProgress);
+        };
+    }, [audioRef, currentSong]);
+
+    const formatTime = (time) => {
+        if (isNaN(time) || time < 0) return '0:00';
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    const handleProgressChange = (e) => {
+        const newProgress = parseFloat(e.target.value);
+        setProgress(newProgress);
+        if (audioRef.current && !isNaN(audioRef.current.duration)) {
+            audioRef.current.currentTime = (newProgress / 100) * audioRef.current.duration;
+        }
+    };
+
+    const handleVolumeChange = useCallback((e) => {
+        const newVolume = parseFloat(e.target.value);
+        setVolume(newVolume);
+        if (audioRef.current) {
+            audioRef.current.volume = newVolume;
+        }
+        setIsMuted(newVolume === 0);
+    }, [audioRef, volume]);
+
+    const handleToggleMute = useCallback(() => {
+        const newMuteState = !isMuted;
+        setIsMuted(newMuteState);
+        if (audioRef.current) {
+            audioRef.current.volume = newMuteState ? 0 : volume;
+        }
+    }, [isMuted, volume, audioRef]);
+
+    const handleLocalFileUpload = async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const songId = `local-${Date.now()}`;
+            const newSong = {
+                id: songId,
+                name: file.name,
+                artist: '로컬 파일',
+                coverUrl: noSongImage,
+                url: '',
+                isLocal: true,
+            };
+
+            try {
+                await saveFileToDB({ id: songId, fileData: file });
+                addSongToPlaylist(newSong);
+                window.showToast(`${file.name} (로컬 파일)이 재생목록에 추가되었습니다.`, 'success');
+            } catch (error) {
+                window.showToast("파일 저장에 실패했습니다.", 'error');
+                console.error("IndexedDB save failed:", error);
+            }
+        }
+    };
+
+    const handleCreatePlaylist = () => {
+        if (!user) {
+            window.showToast('로그인이 필요합니다.', 'error');
+            return;
+        }
+        if (newPlaylistName.trim() === '') {
+            window.showToast('플레이리스트 이름을 입력해주세요.', 'error');
+            return;
+        }
+        if (playlist.length === 0) {
+            window.showToast('플레이리스트에 담을 곡이 없습니다.', 'warning');
+            return;
+        }
+
+        const newPlaylist = {
+            id: `playlist-${Date.now()}`,
+            name: newPlaylistName,
+            isPublic: false,
+            songs: playlist,
+            ownerId: user.id,
+        };
+        const updatedPlaylists = [...userPlaylists, newPlaylist];
+        setUserPlaylists(updatedPlaylists);
+        setNewPlaylistName('');
+        savePlaylistsToLocalStorage(LOCAL_STORAGE_KEY_USER_PLAYLISTS, updatedPlaylists);
+        window.showToast('새 플레이리스트가 생성되었습니다!', 'success');
+    };
+
+    const handleTogglePublic = (playlistId) => {
+        const updatedPlaylists = userPlaylists.map(pl =>
+            pl.id === playlistId ? { ...pl, isPublic: !pl.isPublic } : pl
+        );
+        setUserPlaylists(updatedPlaylists);
+        savePlaylistsToLocalStorage(LOCAL_STORAGE_KEY_USER_PLAYLISTS, updatedPlaylists);
+        window.showToast('플레이리스트 공개 상태가 변경되었습니다.', 'info');
+    };
+
+    const handleSearch = () => {
+        if (searchTerm.trim() === '') return;
+        try {
+            const allPublicPlaylists = userPlaylists.filter(pl => pl.isPublic);
+            const results = allPublicPlaylists.filter(pl => pl.name.includes(searchTerm));
+            setSearchResults(results);
+            window.showToast('플레이리스트 검색 완료!', 'success');
+        } catch (error) {
+            window.showToast(error.message || '플레이리스트 검색에 실패했습니다.', 'error');
+        }
+    };
+
+    const handleReceiveSharedPlaylist = async (sharedPlaylist) => {
+        const updatedSharedPlaylists = [...sharedPlaylists, sharedPlaylist];
+        setSharedPlaylists(updatedSharedPlaylists);
+        savePlaylistsToLocalStorage(LOCAL_STORAGE_KEY_SHARED_PLAYLISTS, updatedSharedPlaylists);
+        window.showToast(`'${sharedPlaylist.name}' 플레이리스트를 공유받았습니다.`, 'success');
+    };
+
+    const handleRenamePlaylist = (playlistId, newName) => {
+        const updatedPlaylists = userPlaylists.map(pl =>
+            pl.id === playlistId ? { ...pl, name: newName } : pl
+        );
+        setUserPlaylists(updatedPlaylists);
+        savePlaylistsToLocalStorage(LOCAL_STORAGE_KEY_USER_PLAYLISTS, updatedPlaylists);
+        setIsEditingName(null);
+    };
+
+    const handleDeletePlaylist = (playlistId) => {
+        const updatedPlaylists = userPlaylists.filter(pl => pl.id !== playlistId);
+        setUserPlaylists(updatedPlaylists);
+        savePlaylistsToLocalStorage(LOCAL_STORAGE_KEY_USER_PLAYLISTS, updatedPlaylists);
+    };
+
+    const handleDeleteSharedPlaylist = (playlistId) => {
+        const updatedPlaylists = sharedPlaylists.filter(pl => pl.id !== playlistId);
+        setSharedPlaylists(updatedPlaylists);
+        savePlaylistsToLocalStorage(LOCAL_STORAGE_KEY_SHARED_PLAYLISTS, updatedPlaylists);
+    };
+
+    const safeDuration = useMemo(() => audioRef.current?.duration || 0, [audioRef.current?.duration, audioRef]);
+    const safeCurrentTime = useMemo(() => audioRef.current?.currentTime || 0, [audioRef.current?.currentTime, audioRef]);
+
+    return (
+        <div className="music-player">
+            <div className="music-player-bar">
+                <div className="music-player-left">
+                    <img src={currentSong?.coverUrl || noSongImage} alt="Album Cover" className="music-player-album-cover" />
+                    <div className="music-player-text-details">
+                        <span className="music-player-song-title">{currentSong?.name || '재생 중인 곡 없음'}</span>
+                        <span className="music-player-song-artist">{currentSong?.artist || '선택해주세요'}</span>
+                    </div>
+                </div>
+
+                <div className="music-player-lyrics-box">
+                    <span>{lyrics}</span>
+                </div>
+
+                <div className="music-player-controls-area">
+                    <div className="music-player-buttons">
+                        <button onClick={() => setShuffleMode(!shuffleMode)} className={`control-button ${shuffleMode ? 'shuffle active' : ''}`}>
+                            <FaRandom className="icon-style" />
+                        </button>
+                        <button onClick={prevSong} className="control-button">
+                            <FaStepBackward className="icon-style" />
+                        </button>
+                        <button onClick={togglePlayPause} className={`control-button play-button`}>
+                            {isPlaying ? <FaPause className="icon-style" /> : <FaPlay className="icon-style" />}
+                        </button>
+                        <button onClick={nextSong} className="control-button">
+                            <FaStepForward className="icon-style" />
+                        </button>
+                        <button onClick={() => setRepeatMode(prev => (prev === 'none' ? 'all' : prev === 'all' ? 'one' : 'none'))} className={`control-button ${repeatMode !== 'none' ? 'repeat active' : ''}`}>
+                            {repeatMode === 'one' ? <MdRepeatOne className="icon-style" /> : <MdRepeat className="icon-style" />}
+                        </button>
+                    </div>
+
+                    <div className="music-player-progress">
+                        <span className="time-current">{formatTime(safeCurrentTime)}</span>
                         <input
-                          type="text"
-                          value={editingPlaylistName}
-                          onChange={(e) => setEditingPlaylistName(e.target.value)}
-                          onBlur={() => handleSavePlaylistName(playlistItem.id)}
-                          onKeyPress={(e) => { if (e.key === 'Enter') handleSavePlaylistName(playlistItem.id); }}
-                          className="playlist-name-input"
-                          autoFocus
+                            type="range"
+                            className="music-player-progress-bar"
+                            value={progress}
+                            onChange={handleProgressChange}
                         />
-                      ) : (
-                        <span
-                          onClick={() => handleLoadPlaylist(playlistItem)}
-                          onDoubleClick={() => startEditingPlaylist(playlistItem.id, playlistItem.title)}
-                        >
-                          {playlistItem.title} ({playlistItem.songs.length} 곡)
-                        </span>
-                      )}
+                        <span className="time-duration">{formatTime(safeDuration)}</span>
                     </div>
-                    <div className="playlist-item-buttons">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddSongToPlaylist(playlistItem.id, currentSong, false);
-                        }}
-                        className="playlist-item-add-song-button"
-                        title={currentSong.id ? '현재 곡을 플레이리스트에 추가' : '재생 중인 곡이 없습니다'}
-                        disabled={!currentSong.id}
-                      >
-                        <FaPlus className="icon-style" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          togglePlaylistVisibility(playlistItem.id);
-                        }}
-                        className={`playlist-visibility-toggle ${playlistItem.isPublic ? 'public' : ''}`}
-                        title={playlistItem.isPublic ? '공개 플레이리스트' : '비공개 플레이리스트'}
-                      >
-                        {playlistItem.isPublic ? <FaGlobe /> : <FaLock />}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePlaylist(playlistItem.id);
-                        }}
-                        className="playlist-item-delete-button"
-                      >
-                        <FaTimes />
-                      </button>
-                    </div>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-          <div className="playlist-section shared-playlists-section">
-            <h5>공유받은 재생 목록</h5>
-            <ul>
-              {sharedPlaylists.length === 0 ? (
-                <li>공유받은 재생 목록이 없습니다.</li>
-              ) : (
-                sharedPlaylists.map((playlistItem) => (
-                  <li key={playlistItem.id}>
-                    <div className="playlist-item-title-wrapper">
-                      {editingPlaylistId === playlistItem.id ? (
+                </div>
+
+                <div className="music-player-extra-controls">
+                    <Equalizer isPlaying={isPlaying} type="linked" />
+                    <div className="volume-control-wrapper">
+                        <button onClick={handleToggleMute} className="volume-toggle-button">
+                            {isMuted ? <FaVolumeMute className="icon-style" /> : <FaVolumeUp className="icon-style" />}
+                        </button>
                         <input
-                          type="text"
-                          value={editingPlaylistName}
-                          onChange={(e) => setEditingPlaylistName(e.target.value)}
-                          onBlur={() => handleSavePlaylistName(playlistItem.id, true)}
-                          onKeyPress={(e) => { if (e.key === 'Enter') handleSavePlaylistName(playlistItem.id, true); }}
-                          className="playlist-name-input"
-                          autoFocus
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={isMuted ? 0 : volume}
+                            onChange={handleVolumeChange}
+                            className="volume-slider"
                         />
-                      ) : (
-                        <span
-                          onClick={() => handleLoadPlaylist(playlistItem)}
-                          onDoubleClick={() => startEditingPlaylist(playlistItem.id, playlistItem.title)}
-                        >
-                          {playlistItem.title} (by {safeOwnerId(playlistItem.ownerId)}) ({playlistItem.songs.length} 곡)
-                        </span>
-                      )}
                     </div>
-                    <div className="playlist-item-buttons">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddSongToPlaylist(playlistItem.id, currentSong, true);
-                        }}
-                        className="playlist-item-add-song-button"
-                        title={currentSong.id ? '현재 곡을 플레이리스트에 추가' : '재생 중인 곡이 없습니다'}
-                        disabled={!currentSong.id}
-                      >
-                        <FaPlus className="icon-style" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePlaylist(playlistItem.id, true);
-                        }}
-                        className="playlist-item-delete-button"
-                      >
-                        <FaTimes />
-                      </button>
-                    </div>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-          <div className="playlist-section playlist-search-section">
-            <h5>공개 플레이리스트 검색</h5>
-            <div className="playlist-search-input-group">
-              <input
-                type="text"
-                placeholder="플레이리스트 검색"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => { if (e.key === 'Enter') handleSearchPublicPlaylists(); }}
-                className="playlist-search-input"
-              />
-              <button onClick={handleSearchPublicPlaylists} className="popup-button">
-                <FaPlus className="icon-style-popup" />
-              </button>
+                    <button onClick={() => setShowPlaylistPopup(!showPlaylistPopup)} className="playlist-toggle-button">
+                        <FaListUl className="icon-style" />
+                    </button>
+                </div>
             </div>
-            {errorMessage && (
-              <div className="playlist-error-message">
-                {errorMessage}
-              </div>
+
+            {showPlaylistPopup && (
+                <div className="playlist-popup" ref={popupRef}>
+                    <div className="playlist-header">
+                        <button onClick={() => setShowPlaylistPopup(false)} className="popup-button">
+                            <FaTimes className="icon-style-popup" />
+                        </button>
+                    </div>
+
+                    {/* 현재 재생목록 섹션 */}
+                    <div className="playlist-section">
+                        <h5>현재 재생목록</h5>
+                        <div className="playlist-add-form">
+                            <button onClick={() => fileInputRef.current.click()} className="playlist-import-button">로컬 파일 추가</button>
+                            <input
+                                type="file"
+                                accept="audio/*"
+                                ref={fileInputRef}
+                                onChange={handleLocalFileUpload}
+                                style={{ display: 'none' }}
+                            />
+                        </div>
+                        <ul className="track-list">
+                            {playlist.length > 0 ? (
+                                playlist.map(song => (
+                                    <li key={song.id} className={currentSong?.id === song.id ? 'active' : ''}>
+                                        <div className="playlist-item-title-wrapper" onClick={() => playSong(song)}>{song.name}</div>
+                                        <div className="playlist-item-buttons">
+                                            <button onClick={() => removeSongFromPlaylist(song.id)} className="playlist-item-delete-button">
+                                                <FaTimes />
+                                            </button>
+                                        </div>
+                                    </li>
+                                ))
+                            ) : (
+                                <p>재생목록이 비어있습니다.</p>
+                            )}
+                        </ul>
+                    </div>
+
+                    {/* 내 플레이리스트 섹션 */}
+                    <div className="playlist-section">
+                        <h5>내 플레이리스트</h5>
+                        <div className="playlist-add-form">
+                            <input
+                                type="text"
+                                className="playlist-input"
+                                placeholder="새 플레이리스트 이름"
+                                value={newPlaylistName}
+                                onChange={(e) => setNewPlaylistName(e.target.value)}
+                            />
+                            <button onClick={handleCreatePlaylist} className="playlist-import-button">생성</button>
+                        </div>
+                        <ul>
+                            {userPlaylists.map(pl => (
+                                <li key={pl.id}>
+                                    {isEditingName === pl.id ? (
+                                        <input
+                                            type="text"
+                                            value={editingName}
+                                            onChange={(e) => setEditingName(e.target.value)}
+                                            onBlur={() => handleRenamePlaylist(pl.id, editingName)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleRenamePlaylist(pl.id, editingName);
+                                            }}
+                                        />
+                                    ) : (
+                                        <span onClick={() => { setIsEditingName(pl.id); setEditingName(pl.name); }}>{pl.name}</span>
+                                    )}
+                                    <div className="playlist-item-buttons">
+                                        <button onClick={() => handleTogglePublic(pl.id)} className={`playlist-visibility-toggle ${pl.isPublic ? 'public' : ''}`}>
+                                            {pl.isPublic ? '공개' : '비공개'}
+                                        </button>
+                                        <button onClick={() => handleDeletePlaylist(pl.id)} className="playlist-item-delete-button">
+                                            <FaTrash />
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* 공개된 플레이리스트 검색 섹션 */}
+                    <div className="playlist-search-section">
+                        <h5>공개된 플레이리스트 검색</h5>
+                        <div className="playlist-search-input-group">
+                            <input
+                                type="text"
+                                className="playlist-search-input"
+                                placeholder="플레이리스트 검색"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <button onClick={handleSearch} className="playlist-import-button">검색</button>
+                        </div>
+                        <div className="playlist-search-results">
+                            <ul>
+                                {searchResults.length > 0 ? (
+                                    searchResults.map(pl => (
+                                        <li key={pl.id}>
+                                            <span>{pl.name} (by {pl.ownerId})</span>
+                                            <div className="playlist-item-buttons">
+                                                <span>{pl.ownerId === user?.id ? '임시목록' : 'Linked'}</span>
+                                                <button onClick={() => handleReceiveSharedPlaylist(pl)} className="playlist-item-add-song-button">
+                                                    <FaPlus />
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))
+                                ) : (
+                                    <p className="no-search-results-message">검색 결과가 없습니다.</p>
+                                )}
+                            </ul>
+                        </div>
+                    </div>
+
+                    {/* 공유받은 목록 섹션 */}
+                    <div className="playlist-section">
+                        <h5>공유받은 목록</h5>
+                        <ul>
+                            {sharedPlaylists.map(pl => (
+                                <li key={pl.id}>
+                                    <span>{pl.name}</span>
+                                    <div className="playlist-item-buttons">
+                                        <button onClick={() => handleDeleteSharedPlaylist(pl.id)} className="playlist-item-delete-button">
+                                            <FaTrash />
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
             )}
-            <div className="playlist-search-results">
-              <ul>
-                {searchResults.length === 0 ? (
-                  <li className="no-search-results-message">검색 결과가 없습니다.</li>
-                ) : (
-                  searchResults.map((result) => (
-                    <li key={result.id}>
-                      <div className="playlist-item-title-wrapper">
-                        <span>
-                          {result.title} (by {safeOwnerId(result.ownerId)}) ({result.songs.length} 곡)
-                        </span>
-                      </div>
-                      <div className="playlist-item-buttons">
-                        {sharedPlaylists.some(p => p.sharedFrom === result.id || p.id === result.id) ? (
-                          <button className="playlist-linked-button" disabled>
-                            Linked
-                          </button>
-                        ) : (
-                          <button onClick={() => handleImportPlaylist(result)} className="playlist-import-button">
-                            가져오기
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-            <button onClick={handleMorePublicPlaylists} className="playlist-more-button">
-              공개 플레이리스트 더보기
-            </button>
-          </div>
         </div>
-      )}
-      <audio ref={audioRef} />
-    </div>
-  );
+    );
 };
 
 export default MusicPlayer;

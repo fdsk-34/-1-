@@ -46,9 +46,6 @@ import UserManagement from './component/UserManagement';
 import CommentManagement from './component/CommentManagement';
 import FileManagement from './component/FileManagement';
 
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-
 // CSS Files
 import './styles/index.css';
 
@@ -116,7 +113,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <AuthProvider>
       <MusicPlayerProvider>
         <RouterProvider router={router} />
-        <ToastContainer />
       </MusicPlayerProvider>
     </AuthProvider>
   </React.StrictMode>
