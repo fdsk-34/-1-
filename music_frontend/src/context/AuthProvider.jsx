@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AuthContext } from './AuthContext';
+import axios from 'axios';
 
+// 🌐 개발 모드 변수
 const DEV_MODE = true;
+
+// 더미 데이터 (개발 모드에서만 사용)
 const mockUser = {
   id: 1,
   email: 'mockuser@example.com',
   nickname: '테스트유저',
   isSubscribed: true,
+  role: 'ADMIN',
+  profileBgImage: '/images/K-045.jpg',
+  purchasedItems: ['song1', 'album1'], // 구매한 항목 추가
 };
 const mockSubscriptionDetails = {
   planId: 'plan_premium',
@@ -14,13 +21,36 @@ const mockSubscriptionDetails = {
   expiryDate: '2025-07-01',
 };
 
+const API_BASE_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:8080';
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+});
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionDetails, setSubscriptionDetails] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [profileBgImage, setProfileBgImage] = useState('/images/K-045.jpg'); // 배경 이미지 상태
+  const [profileBgImage, setProfileBgImage] = useState('/images/K-045.jpg');
 
+  // JWT 토큰을 모든 요청에 자동으로 포함시키는 인터셉터 설정
+  useEffect(() => {
+    const requestInterceptor = apiClient.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('jwt');
+        if (token) {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    return () => apiClient.interceptors.request.eject(requestInterceptor);
+  }, []);
+
+  // 페이지 로드 시 JWT 토큰으로 사용자 인증 상태 확인
   useEffect(() => {
     if (DEV_MODE) {
       setUser(mockUser);
@@ -28,77 +58,86 @@ export const AuthProvider = ({ children }) => {
       setSubscriptionDetails(mockSubscriptionDetails);
       setLoading(false);
       localStorage.setItem('jwt', 'dummy_jwt_token_for_dev');
-      console.log('[AUTH_PROVIDER_EFFECT] DEV_MODE: user', mockUser, 'subscriptionDetails', mockSubscriptionDetails, 'loading', false);
       return;
     }
+    
     const verifyAuth = async () => {
-      setLoading(true);
-      const jwt = localStorage.getItem('jwt');
-      if (jwt) {
-        try {
-          // API 호출 주석 처리
-          /*
-          const response = await axios.get(`${import.meta.env.VITE_REACT_APP_API_URL}/api/auth/verify`, {
-            headers: { Authorization: `Bearer ${jwt}` },
-          });
-          setUser(response.data.user);
-          setIsSubscribed(response.data.user.isSubscribed || false);
-          setSubscriptionDetails(response.data.subscriptionDetails || null);
-          setProfileBgImage(response.data.profileBgImage || '/images/K-045.jpg');
-          */
-          setUser(mockUser);
-          setIsSubscribed(mockUser.isSubscribed);
-          setSubscriptionDetails(mockSubscriptionDetails);
-          setProfileBgImage('/images/K-045.jpg'); // DEV_MODE에서 기본값
-        } catch {
-          localStorage.removeItem('jwt');
-          setUser(null);
-          setIsSubscribed(false);
-          setSubscriptionDetails(null);
-          setProfileBgImage('/images/K-045.jpg');
-        } finally {
-          setLoading(false);
-        }
-      } else {
+      const token = localStorage.getItem('jwt');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await apiClient.get('/user/verify');
+        const { user: userData, subscriptionDetails } = response.data;
+        
+        setUser(userData);
+        setIsSubscribed(userData.isSubscribed || false);
+        setSubscriptionDetails(subscriptionDetails || null);
+        setProfileBgImage(userData.profileBgImage || '/images/K-045.jpg');
+        console.log('[AUTH_PROVIDER_EFFECT] Token verified, user logged in:', userData);
+      } catch (error) {
+        console.error('[AUTH_PROVIDER_EFFECT] Token verification failed:', error);
+        localStorage.removeItem('jwt');
+      } finally {
         setLoading(false);
       }
     };
     verifyAuth();
   }, []);
 
-  const login = useCallback(async ({ identifier, password }) => {
+  // ✅ 일반 로그인 함수
+  const login = useCallback(async (identifier, password) => {
+    setLoading(true);
     if (DEV_MODE) {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
       setUser(mockUser);
       setIsSubscribed(mockUser.isSubscribed);
       setSubscriptionDetails(mockSubscriptionDetails);
-      localStorage.setItem('jwt', 'dummy_jwt_token_for_dev');
       setLoading(false);
-      console.log('[AUTH_PROVIDER_LOGIN] DEV_MODE: user', mockUser, 'identifier', identifier, 'password', password, 'loading', false);
+      localStorage.setItem('jwt', 'dummy_jwt_token_for_dev');
       return true;
     }
-    setLoading(true);
+
     try {
-      // API 호출 주석 처리
-      /*
-      const response = await axios.post(
-        `${import.meta.env.VITE_REACT_APP_API_URL}/api/auth/login`,
-        { identifier, password }
-      );
+      const response = await apiClient.post('/user/doLogin', { identifier, password });
       const { token, user: userData, subscriptionDetails } = response.data;
+      
       localStorage.setItem('jwt', token);
+      
       setUser(userData);
       setIsSubscribed(userData.isSubscribed || false);
       setSubscriptionDetails(subscriptionDetails || null);
       setProfileBgImage(userData.profileBgImage || '/images/K-045.jpg');
-      */
-      setUser(mockUser);
-      setIsSubscribed(mockUser.isSubscribed);
-      setSubscriptionDetails(mockSubscriptionDetails);
-      localStorage.setItem('jwt', 'dummy_jwt_token_for_dev');
+      
+      console.log('[AUTH_PROVIDER_LOGIN] Login successful:', userData);
       return true;
-    } catch {
+    } catch (error) {
+      console.error('[AUTH_PROVIDER_LOGIN] Login failed:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
+  // ✅ 소셜 로그인 후 토큰 처리 함수
+  const handleSocialLoginToken = useCallback(async (token) => {
+    localStorage.setItem('jwt', token);
+    setLoading(true);
+    try {
+      const response = await apiClient.get('/user/verify');
+      const { user: userData, subscriptionDetails } = response.data;
+      
+      setUser(userData);
+      setIsSubscribed(userData.isSubscribed || false);
+      setSubscriptionDetails(subscriptionDetails || null);
+      setProfileBgImage(userData.profileBgImage || '/images/K-045.jpg');
+      console.log('[AUTH_PROVIDER_SOCIAL] Social login successful:', userData);
+      return true;
+    } catch (error) {
+      console.error('[AUTH_PROVIDER_SOCIAL] Social login failed:', error);
+      localStorage.removeItem('jwt');
       return false;
     } finally {
       setLoading(false);
@@ -116,15 +155,17 @@ export const AuthProvider = ({ children }) => {
 
   const contextValue = useMemo(() => ({
     user,
+    setUser,
     isSubscribed,
     setIsSubscribed,
     subscriptionDetails,
     login,
+    handleSocialLoginToken,
     logout,
     loading,
     profileBgImage,
-    setProfileBgImage,
-  }), [user, isSubscribed, subscriptionDetails, login, logout, loading, profileBgImage]);
+    setProfileBgImage
+  }), [user, isSubscribed, subscriptionDetails, login, handleSocialLoginToken, logout, loading, profileBgImage]);
 
   return (
     <AuthContext.Provider value={contextValue}>

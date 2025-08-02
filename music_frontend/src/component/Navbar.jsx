@@ -8,7 +8,7 @@ import { AuthContext } from '../context/AuthContext';
 const Navbar = () => {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
-  const { user, loading } = useContext(AuthContext); 
+  const { user, loading } = useContext(AuthContext);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -49,7 +49,11 @@ const Navbar = () => {
       <Link to="/explore" className="navbar-link">랭킹 차트</Link>
       
       {user ? (
-        <Link to="/myPage" className="navbar-link">마이 페이지</Link>
+        user.role === 'ADMIN' ? (
+          <Link to="/admin" className="navbar-link">사이트 관리</Link>
+        ) : (
+          <Link to="/myPage" className="navbar-link">마이 페이지</Link>
+        )
       ) : null}
 
       <Link to="/subscription-plans" className="navbar-link">구독 요금제 안내</Link>

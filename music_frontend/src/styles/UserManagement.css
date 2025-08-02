@@ -1,0 +1,74 @@
+.user-management-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.user-management-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2d3748;
+  margin-bottom: 20px;
+}
+
+.user-management-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.user-management-search {
+  padding: 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  flex: 1;
+}
+
+.user-management-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-management-table th,
+.user-management-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.user-management-table th {
+  background: #edf2f7;
+  font-weight: bold;
+}
+
+.user-management-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.user-management-btn-edit {
+  background: #3182ce;
+  color: #fff;
+}
+
+.user-management-btn-delete {
+  background: #e53e3e;
+  color: #fff;
+}
+
+.user-management-empty {
+  text-align: center;
+  padding: 20px;
+  color: #718096;
+}
+
+.user-management-error {
+  color: #e53e3e;
+  text-align: center;
+  margin-bottom: 20px;
+}

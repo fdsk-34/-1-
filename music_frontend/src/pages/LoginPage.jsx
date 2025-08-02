@@ -1,10 +1,9 @@
-// src/pages/LoginPage.jsx
-import React, { useContext, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext'; // useAuth 임포트
 import '../styles/LoginPage.css';
 
 const LoginSchema = Yup.object().shape({
@@ -17,34 +16,32 @@ const LoginSchema = Yup.object().shape({
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { setUser, setIsSubscribed } = useContext(AuthContext);
-
+  const { login } = useAuth(); // useAuth로 login 함수 가져오기
   const API_BASE_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:8080';
 
-  // OAuth2 로그인 리다이렉트 처리 함수
   const handleOAuth2Redirect = useCallback(async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    const provider = urlParams.get('state'); // google 또는 kakao
+    const provider = urlParams.get('state');
 
     if (code && provider) {
       try {
         const endpoint = provider === 'kakao' ? '/user/kakao/doLogin' : '/login/oauth2/code/google';
         const res = await axios.get(`${API_BASE_URL}${endpoint}?code=${code}`);
+        console.log('OAuth2 응답:', res.data);
 
         localStorage.setItem('jwt', res.data.token);
         if (res.data.user) {
-          setUser(res.data.user);
-          setIsSubscribed(res.data.user.isSubscribed || false);
+          await login({ identifier: res.data.user.email, password: '' }); // login 함수 호출
         }
         alert(`${provider === 'kakao' ? '카카오' : 'Google'} 로그인 성공!`);
         navigate('/');
       } catch (err) {
-        console.error(`${provider} 로그인 실패:`, err);
+        console.error(`${provider} 로그인 실패:`, err.response?.data || err.message);
         alert(`${provider === 'kakao' ? '카카오' : 'Google'} 로그인에 실패했습니다.`);
       }
     }
-  }, [API_BASE_URL, navigate, setUser, setIsSubscribed]);
+  }, [API_BASE_URL, navigate, login]);
 
   useEffect(() => {
     handleOAuth2Redirect();
@@ -63,19 +60,17 @@ const LoginPage = () => {
           onSubmit={async (values, { setSubmitting, setFieldError }) => {
             setSubmitting(true);
             try {
-              const res = await axios.post(`${API_BASE_URL}/user/doLogin`, values);
-              const token = res.data.token;
-              const userData = res.data.user || res.data;
-
-              localStorage.setItem('jwt', token);
-              setUser(userData);
-              setIsSubscribed(userData.isSubscribed || false);
-
-              alert('로그인 성공!');
-              navigate('/');
+              const success = await login({ identifier: values.email, password: values.password });
+              if (success) {
+                alert('로그인 성공!');
+                navigate('/');
+              } else {
+                setFieldError('email', '이메일 또는 비밀번호가 올바르지 않습니다.');
+                setFieldError('password', ' ');
+              }
             } catch (err) {
-              console.error('로그인 실패:', err);
-              setFieldError('email', '이메일 또는 비밀번호가 올바르지 않습니다.');
+              console.error('로그인 실패:', err.response?.data || err.message);
+              setFieldError('email', err.response?.data?.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
               setFieldError('password', ' ');
             } finally {
               setSubmitting(false);
