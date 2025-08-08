@@ -1,0 +1,311 @@
+/* src/styles/ToastNotification.css */
+
+/* 토스트 알림 아이콘 */
+.toast-notification-icon {
+  position: fixed;
+  left: 20px;
+  bottom: 140px;
+  z-index: 1000;
+  background: #2d3748;
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.toast-notification-icon:hover {
+  background: #4a5568;
+  transform: scale(1.1);
+}
+
+.toast-notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #e53e3e;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* 토스트 카드 컨테이너 */
+.toast-cards-container {
+  position: fixed;
+  left: 80px;
+  bottom: 120px;
+  width: 320px;
+  max-height: 400px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: 999;
+  animation: slideInFromLeft 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast-cards-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.toast-cards-header h4 {
+  margin: 0;
+  color: #2d3748;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+
+
+
+
+.toast-cards-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.toast-card {
+  position: relative;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: background-color 0.2s;
+}
+
+.toast-card:hover {
+  background: #f8fafc;
+}
+
+.toast-card:last-child {
+  border-bottom: none;
+}
+
+.toast-card-content {
+  flex: 1;
+}
+
+.toast-card-message {
+  color: #2d3748;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.toast-card-time {
+  color: #718096;
+  font-size: 12px;
+}
+
+.toast-card-indicator {
+  width: 4px;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 0 2px 2px 0;
+}
+
+.toast-indicator-success { background: #38a169; }
+.toast-indicator-error { background: #e53e3e; }
+.toast-indicator-warning { background: #d69e2e; }
+.toast-indicator-info { background: #3182ce; }
+
+.toast-card-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #718096;
+  font-size: 14px;
+}
+
+/* 실시간 토스트 (아이콘 옆에서 시작해서 우측으로 슬라이드인 후 위로 슬라이드아웃) */
+.live-toast-container {
+  position: fixed;
+  left: 80px; /* 아이콘 옆에서 시작 */
+  bottom: 140px;
+  z-index: 1001;
+  pointer-events: none;
+}
+
+.live-toast {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  margin-bottom: 8px;
+  min-width: 280px;
+  max-width: 350px;
+  animation: toastSlideFromIcon 0.5s ease-out, toastSlideOut 0.5s ease-in 0.5s forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes toastSlideFromIcon {
+  from {
+    transform: translateX(-60px); /* 아이콘 위치에서 시작 */
+    opacity: 0;
+    scale: 0.8;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+}
+
+.live-toast-content {
+  padding: 16px 20px;
+  position: relative;
+}
+
+.live-toast-message {
+  color: #2d3748;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.live-toast-success::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #38a169;
+}
+
+.live-toast-error::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #e53e3e;
+}
+
+.live-toast-warning::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #d69e2e;
+}
+
+.live-toast-info::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #3182ce;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .toast-notification-icon {
+    left: 10px;
+    bottom: 130px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .toast-cards-container {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    bottom: 120px;
+  }
+
+  .live-toast-container {
+    left: 60px; /* 모바일에서도 아이콘 옆에서 시작 */
+    right: 10px;
+  }
+
+  .live-toast {
+    min-width: auto;
+    max-width: none;
+  }
+
+  @keyframes toastSlideFromIcon {
+    from {
+      transform: translateX(-50px); /* 모바일에서는 조금 더 가까이 */
+      opacity: 0;
+      scale: 0.8;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+      scale: 1;
+    }
+  }
+}
+
+/* 스크롤바 스타일링 */
+.toast-cards-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.toast-cards-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.toast-cards-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.toast-cards-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

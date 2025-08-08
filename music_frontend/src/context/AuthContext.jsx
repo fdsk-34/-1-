@@ -1,15 +1,16 @@
 import React from 'react';
 
-// 초기값을 명확히 정의하는 게 좋아요
 export const AuthContext = React.createContext({
   user: null,
+  setUser: () => {}, // setUser 추가
   isSubscribed: false,
-  loading: false,
+  setIsSubscribed: () => {},
+  subscriptionDetails: null,
   login: async () => {},
   logout: () => {},
-  setIsSubscribed: () => {},
+  loading: false,
+  profileBgImage: '/images/K-045.jpg',
   setProfileBgImage: () => {},
 });
 
-// 커스텀 훅으로 쉽게 사용
 export const useAuth = () => React.useContext(AuthContext);

@@ -1,0 +1,120 @@
+/* src/styles/SubscriptionManagement.css */
+
+.subscription-management-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.subscription-management-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.subscription-tiers-info {
+  margin-bottom: 32px;
+  padding: 24px;
+  background-color: #f1f5f9;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.subscription-tiers-info h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.subscription-tiers-info ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.subscription-tiers-info li {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #475569; /* Tailwind: text-slate-600 */
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.subscription-tiers-info li::before {
+  content: '✓';
+  color: #16a34a; /* Tailwind: text-green-600 */
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
+
+.subscription-list h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.subscription-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #e2e8f0;
+  transition: background-color 0.2s;
+}
+
+.subscription-item:hover {
+  background-color: #f1f5f9;
+}
+
+.subscription-item p {
+  margin: 0;
+  font-size: 1rem;
+  color: #334155;
+}
+
+.subscription-tier-select {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.subscription-tier-select label {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.subscription-tier-select select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #334155;
+  appearance: none; /* 기본 화살표 제거 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+}
+
+.subscription-tier-select select:focus {
+  outline: none;
+  border-color: #4b0082;
+}
+

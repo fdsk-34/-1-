@@ -11,7 +11,7 @@ const UserProfilePage = () => {
     setIsSubscribed,
     subscriptionDetails,
     logout,
-    profileBgImage,
+    profileBgImage, // AuthContext에서 가져온 profileBgImage
     setProfileBgImage,
     loading: authLoading
   } = useContext(AuthContext);
@@ -24,31 +24,37 @@ const UserProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const jwt = localStorage.getItem('jwt');
+  const jwt = localStorage.getItem('jwt'); // JWT는 실제 백엔드 연동 시 필요
 
+  // 사용자 프로필 정보를 가져오는 함수
   const fetchProfile = useCallback(() => {
-    if (!jwt) {
+    if (!user) { // user 객체가 없으면 로그인 필요
       setError('로그인이 필요합니다.');
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
+      // AuthContext의 user 객체에서 실제 이메일과 닉네임을 가져와 설정
       setProfile({
-        email: user.email,
-        nickname: user.nickname,
-        subscriptionStatus: isSubscribed ? 'active' : 'inactive',
+        email: user.email, // 로그인한 유저의 이메일 사용
+        nickname: user.nickname, // 로그인한 유저의 닉네임 사용
+        subscriptionStatus: isSubscribed ? 'active' : 'inactive', // AuthContext의 isSubscribed 사용
+        profileImageUrl: profileBgImage || '/images/default-profile.jpg' // 기본 이미지 경로 추가
       });
-      setNickname(user.nickname);
-    } catch {
+      setNickname(user.nickname); // 닉네임 초기화 (편집 모드용)
+    } catch (err) {
       setError('프로필을 불러오는 데 실패했습니다.');
+      console.error('Fetch profile error:', err);
     } finally {
       setLoading(false);
     }
-  }, [jwt, user, isSubscribed]);
+  }, [user, isSubscribed, profileBgImage]); // 의존성 배열에 user, isSubscribed, profileBgImage 추가
 
+  // 구독 이력을 가져오는 함수 (목업 데이터)
   const fetchHistory = useCallback(() => {
-    if (!jwt) return;
+    if (!jwt) return; // 실제 API 호출 시 JWT 필요
+    // 실제 API 호출 대신 목업 데이터 사용
     setHistory([
       {
         id: 'sub_001',
@@ -57,9 +63,17 @@ const UserProfilePage = () => {
         expiresAt: '2025-07-01T00:00:00Z',
         price: 14900,
       },
+      {
+        id: 'sub_002',
+        planName: 'Standard',
+        subscribedAt: '2024-05-01T00:00:00Z',
+        expiresAt: '2024-06-01T00:00:00Z',
+        price: 9900,
+      },
     ]);
   }, [jwt]);
 
+  // 컴포넌트 마운트 시 프로필 및 이력 가져오기
   useEffect(() => {
     if (user) {
       fetchProfile();
@@ -68,50 +82,60 @@ const UserProfilePage = () => {
       setLoading(false);
       setError('로그인 후 프로필을 확인할 수 있습니다.');
     }
-  }, [user, fetchProfile, fetchHistory]);
+  }, [user, fetchProfile, fetchHistory]); // 의존성 배열 업데이트
 
+  // 프로필 업데이트 처리
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
+      // 실제 백엔드 연동 로직 (현재는 목업)
       setProfile({ ...profile, nickname });
       setEditMode(false);
-      setPassword('');
+      setPassword(''); // 비밀번호 초기화
       alert('프로필이 업데이트되었습니다!');
     } catch (err) {
       alert('업데이트 실패: ' + err.message);
     }
   };
 
+  // 구독 해지 처리
   const handleUnsubscribe = async () => {
     try {
-      setIsSubscribed(false);
-      setProfile({ ...profile, subscriptionStatus: 'inactive' });
+      // 실제 백엔드 연동 로직 (현재는 목업)
+      setIsSubscribed(false); // AuthContext 업데이트
+      setProfile(prev => ({ ...prev, subscriptionStatus: 'inactive' })); // 로컬 프로필 상태 업데이트
       alert('구독 해지 완료');
-      navigate('/subscription');
+      navigate('/subscription'); // 구독 페이지로 이동
     } catch (err) {
       alert('구독 해지 실패: ' + err.message);
     }
   };
 
+  // 구독 연장 처리
   const handleExtend = () => {
     if (subscriptionDetails?.planId) {
-      navigate(`/payment/${subscriptionDetails.planId}`);
+      navigate(`/payment/${subscriptionDetails.planId}`); // 특정 플랜 ID로 결제 페이지 이동
     } else {
-      navigate('/subscription-plans');
+      navigate('/subscription-plans'); // 구독 플랜 선택 페이지로 이동
     }
   };
 
+  // 로그아웃 처리
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    logout(); // AuthContext의 logout 함수 호출
+    navigate('/login'); // 로그인 페이지로 이동
   };
 
+  // 프로필 이미지 업로드 처리
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onloadend = () => {
-      setProfileBgImage(reader.result);
+      setProfileBgImage(reader.result); // AuthContext에 이미지 저장
+      // 로컬 프로필 상태에도 업데이트 (즉시 반영을 위해)
+      setProfile(prev => ({ ...prev, profileImageUrl: reader.result }));
       setError(null);
     };
     reader.readAsDataURL(file);
@@ -131,16 +155,21 @@ const UserProfilePage = () => {
 
   return (
     <div className="user-profile-page-container">
-      <div className="user-profile-glass-background">
+      <div className="user-profile-main-wrapper">
         <div className="user-profile-columns">
           {/* 프로필 편집 영역 */}
           <div className="user-profile-column">
-            <div
-              className="user-profile-box"
-              style={{ backgroundImage: `url(${profileBgImage})` }}
-            >
+            <div className="user-profile-box profile-info-box" style={{ backgroundImage: `url(${profileBgImage})` }}>
               <div className="user-profile-overlay-dark">
-                <h2 className="user-profile-title">내 프로필</h2>
+                {/* 상단 프로필 이미지 및 닉네임 섹션 */}
+                <div className="profile-image-section">
+                  <div className="profile-image-circle">
+                    {/* profile.profileImageUrl이 없거나 로드 실패 시 기본 이미지 사용 */}
+                    <img src={profile.profileImageUrl} alt="프로필 이미지" onError={(e) => { e.target.onerror = null; e.target.src = '/images/default-profile.jpg'; }} />
+                  </div>
+                  <h2 className="profile-nickname-display">{profile.nickname}</h2>
+                  <p className="profile-email-display">{profile.email}</p>
+                </div>
 
                 <div className="user-profile-section">
                   <h3 className="user-profile-section-title">프로필 정보</h3>
@@ -151,12 +180,13 @@ const UserProfilePage = () => {
                         value={nickname}
                         onChange={(e) => setNickname(e.target.value)}
                         className="user-profile-input"
+                        placeholder="새 닉네임"
                       />
                       <input
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="새 비밀번호"
+                        placeholder="새 비밀번호 (선택 사항)"
                         className="user-profile-input"
                       />
                       <div className="user-profile-button-row">
@@ -173,7 +203,7 @@ const UserProfilePage = () => {
                       </div>
                     </form>
                   ) : (
-                    <>
+                    <div className="user-profile-info-display">
                       <p>
                         <strong>이메일:</strong> {profile.email}
                       </p>
@@ -183,12 +213,12 @@ const UserProfilePage = () => {
                       <button onClick={() => setEditMode(true)} className="btn-default">
                         프로필 수정
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
 
                 <div className="user-profile-section">
-                  <h3 className="user-profile-section-title">이미지 변경</h3>
+                  <h3 className="user-profile-section-title">프로필 이미지 변경</h3>
                   <input type="file" accept="image/*" onChange={handleImageUpload} />
                 </div>
 
@@ -204,13 +234,8 @@ const UserProfilePage = () => {
           </div>
 
           {/* 구독 정보 영역 */}
-          
           <div className="user-profile-column">
-            
-            <div
-              className="user-profile-box"
-              style={{ backgroundImage: `url(${profileBgImage})` }}
-            >
+            <div className="user-profile-box">
               <div className="user-profile-overlay-dark">
                 <h3 className="user-profile-section-title green">구독 정보</h3>
                 <p
@@ -222,7 +247,11 @@ const UserProfilePage = () => {
                     ? '활성화 : 구독 중'
                     : '비활성화 : 구독 없음'}
                 </p>
-                <Equalizer isPlaying={profile.subscriptionStatus === 'active'} />
+                {/* 구독 중일 때만 이퀄라이저 활성화 */}
+                {profile.subscriptionStatus === 'active' && (
+                  <Equalizer isPlaying={true} />
+                )}
+                
                 {profile.subscriptionStatus === 'active' && (
                   <div className="user-profile-button-row">
                     <button onClick={handleExtend} className="btn-green">

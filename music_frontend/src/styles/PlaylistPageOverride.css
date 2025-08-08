@@ -30,6 +30,38 @@
   margin: 0; /* 상하 마진 제거 */
  
 }
+/* src/styles/PlaylistPageOverride.css */
+.playlist-section-box {
+  margin-bottom: 80px; /* 하위 박스 간격 유지 */
+  
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.pagination-nav {
+  display: flex;
+  align-items: center;
+}
+
+.pagination-container {
+  display: flex;
+  flex-direction: row; /* 좌우 방향으로 버튼 배치 */
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0; /* 상하 마진 제거 */
+ 
+}
 
 .carousel-nav-button {
   width: 36px;
@@ -43,14 +75,13 @@
 }
 
 .carousel-nav-button:disabled {
-  background-color: rgba(var(--flo-accent-color-rgb), 0.3);
+  background-color: #ddd;
   cursor: not-allowed;
 }
 
 .carousel-nav-button:hover:not(:disabled) {
-  background-color: rgba(var(--flo-accent-color-rgb), 1);
+  background-color: var(--flo-accent-color);
 }
-
 .pagination-dots {
   display: flex;
   justify-content: center;
@@ -70,3 +101,4 @@
 .pagination-dot.active {
   background-color: var(--flo-accent-color);
 }
+
