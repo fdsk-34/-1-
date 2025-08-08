@@ -1,0 +1,62 @@
+.user-management {
+  padding: 20px;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.user-table th,
+.user-table td {
+  padding: 10px;
+  border: 1px solid #dee2e6;
+  text-align: left;
+}
+
+.user-table th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+}
+
+.user-table input,
+.user-table select {
+  padding: 5px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.user-table button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.user-table button:first-of-type {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.user-table button:last-of-type {
+  background-color: #ff4d4f;
+  color: #fff;
+}
+
+.loading-text {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #333;
+  margin-top: 50px;
+}
+
+.admin-error {
+  text-align: center;
+  color: #ff4d4f;
+  font-size: 1.2rem;
+  margin-top: 50px;
+}

@@ -39,49 +39,60 @@ const mockUserPlaylistsAndLikes = Array.from({ length: 4 }, (_, i) => ({
 
 import '../styles/UserPlaylistsSidebar.css'; // ✨ 전용 CSS
 
-const UserPlaylistsSidebarPage = ({ onPlay }) => { // onPlay는 SidebarContent로부터 전달받음
+const UserPlaylistsSidebarPage = ({ onPlay }) => {
+  // onPlay는 SidebarContent로부터 전달받음
   // 실제 앱에서는 이곳에서 사용자 재생 기록, 플레이리스트, 좋아요 정보를 API를 통해 가져옵니다.
   // const [history, setHistory] = useState([]); // 주석 처리된 부분으로 ESLint 경고
-  // const [userPlaylists, setUserPlaylists] = useState([]); // 주석 처리된 부분으로 ESLint 경고
-  // const [loading, setLoading] = useState(true); // 주석 처리된 부분으로 ESLint 경고
+  // const [userPlaylists, setUserPlaylists] = useState([]);
 
-  // useEffect(() => {
-  //   // API 호출 로직
-  //   // fetchUserHistory().then(data => setHistory(data));
-  //   // fetchUserPlaylists().then(data => setUserPlaylists(data));
-  //   // setLoading(false);
-  // }, []);
+  // ✨ 플레이리스트 목록 렌더링을 위한 컴포넌트
+  const PlaylistsSection = ({ title, items, linkText, linkTo }) => (
+    <div className="user-playlists-section">
+      <div className="subsection-header">
+        <h4 className="user-playlists-section-title">{title}</h4>
+        {linkTo && <Link to={linkTo} className="user-playlists-more-link">{linkText}</Link>}
+      </div>
+      <div className="user-playlists-grid">
+        {items.map(item => (
+          <SidebarMiniCard 
+            key={item.id} 
+            item={item} 
+            onPlay={onPlay} 
+          />
+        ))}
+      </div>
+    </div>
+  );
+  PlaylistsSection.propTypes = {
+    title: PropTypes.string.isRequired,
+    items: PropTypes.arrayOf(PropTypes.object).isRequired,
+    linkText: PropTypes.string,
+    linkTo: PropTypes.string,
+  };
 
 
   return (
     <div className="user-playlists-sidebar-container">
-      {/* 1. 재생 기록 섹션 */}
-      <div className="user-playlists-section history-section">
-        <h4 className="user-playlists-section-title">재생 기록</h4>
-        <div className="user-playlists-grid">
-          {mockHistoryItems.map(item => (
-            <SidebarMiniCard key={item.id} item={item} type={item.type} onPlay={onPlay} />
-          ))}
-        </div>
-        <Link to="/history" className="user-playlists-more-link">더보기</Link>
-      </div>
+      {/* 1. 최근 감상 목록 (History Section) */}
+      <PlaylistsSection 
+        title="최근 감상"
+        items={mockHistoryItems} 
+        linkText="더보기"
+        linkTo="/recent-history"
+      />
 
-      {/* 2. 나의 플레이리스트/좋아요 섹션 */}
-      <div className="user-playlists-section my-lists-section">
-        <h4 className="user-playlists-section-title">나의 플레이리스트</h4>
-        <div className="user-playlists-grid">
-          {mockUserPlaylistsAndLikes.map(item => (
-            <SidebarMiniCard key={item.id} item={item} type={item.type} onPlay={onPlay} />
-          ))}
-        </div>
-        <Link to="/my-playlists" className="user-playlists-more-link">더보기</Link>
-      </div>
+      {/* 2. 내 플레이리스트 및 좋아요 목록 (My Playlists & Likes) */}
+      <PlaylistsSection 
+        title="내 플레이리스트 & 좋아요" 
+        items={mockUserPlaylistsAndLikes}
+        linkText="더보기"
+        linkTo="/my-playlists"
+      />
     </div>
   );
 };
-
 UserPlaylistsSidebarPage.propTypes = {
-  onPlay: PropTypes.func.isRequired, // 노래 재생 함수 (MusicPlayerContext의 playSong)
+  onPlay: PropTypes.func,
 };
 
 export default UserPlaylistsSidebarPage;

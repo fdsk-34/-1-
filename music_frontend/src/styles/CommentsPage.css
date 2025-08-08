@@ -1,87 +1,123 @@
-/* src/styles/commentspage.css */
-.comments-page-container {
-  min-height: 100vh;
-  background-color: var(--flo-bg-dark);
-  color: var(--flo-text-white);
-  padding: 2rem 1.5rem; /* py-8 px-6 */
-  max-width: 896px; /* max-w-4xl */
-  margin-left: auto;
-  margin-right: auto;
-  box-sizing: border-box;
+/* src/styles/CommentManagement.css */
+
+.comment-management-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.comments-page-loading {
-  min-height: 100vh;
+.comment-management-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #4b0082;
+  border-bottom: 2px solid #f0f2f5;
+  padding-bottom: 10px;
+}
+
+.comment-management-empty {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+}
+
+.comment-management-list {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.comment-management-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.comment-management-item:hover {
+  background-color: #f0f2f5;
+}
+
+.comment-management-content {
+  flex-grow: 1;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.comment-management-content strong {
+  color: #4b0082;
+}
+
+.comment-management-info {
+  font-size: 0.85rem;
+  color: #888;
+  text-align: right;
+  margin-top: 5px;
+}
+
+.comment-management-timestamp {
+  display: block;
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-top: 5px;
+}
+
+.comment-management-actions {
+  margin-left: 20px;
+  flex-shrink: 0;
+}
+
+.comment-management-btn {
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.comment-management-btn-delete {
+  background-color: #ef5350;
+  color: #fff;
+}
+
+.comment-management-btn-delete:hover {
+  background-color: #d32f2f;
+}
+
+.pagination {
+  display: flex;
   justify-content: center;
-  background-color: var(--flo-bg-dark);
-  color: var(--flo-text-gray);
-  font-size: 1.125rem; /* text-lg */
+  align-items: center;
+  margin-top: 20px;
+  gap: 5px;
 }
 
-.comments-page-title {
-  font-size: 1.875rem; /* text-3xl */
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 2rem; /* mb-8 */
+.pagination-btn {
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #333;
 }
 
-.comments-list-wrapper {
-  background-color: var(--flo-bg-medium); /* bg-gray-800 */
-  border-radius: 0.5rem; /* rounded-lg */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); /* shadow-lg */
-  border: 1px solid var(--flo-bg-medium); /* border border-gray-700 */
-  max-height: calc(100vh - 12.5rem); /* max-h-[calc(100vh-200px)] */
-  overflow-y: auto;
+.pagination-btn:hover {
+  background-color: #f0f2f5;
+  border-color: #c5c5c5;
 }
 
-.comments-message {
-  padding-top: 2.5rem; /* py-10 */
-  padding-bottom: 2.5rem;
-  text-align: center;
-  font-size: 1.125rem; /* text-lg */
-  grid-column: 1 / -1; /* col-span-full */
-}
-
-.comments-error-message {
-  color: var(--flo-accent-red);
-}
-
-.comments-empty-message {
-  color: var(--flo-text-gray);
-}
-
-.comment-item {
-  padding: 1rem 1.5rem; /* py-4 px-6 */
-  border-bottom: 1px solid var(--flo-bg-medium); /* divide-y divide-gray-700 */
-  transition: background-color 0.15s ease;
-}
-
-.comment-item:last-child {
-  border-bottom: none;
-}
-
-.comment-item:hover {
-  background-color: var(--flo-bg-light); /* hover:bg-gray-700 */
-}
-
-.comment-content {
-  color: var(--flo-text-white); /* text-gray-300 */
-  font-size: 1rem; /* text-base */
-  margin-bottom: 0.25rem; /* mb-1 */
-}
-
-.comment-user-nickname {
-  color: var(--flo-accent-blue); /* text-blue-400 */
-  font-weight: 600; /* font-semibold */
-}
-
-.comment-resource-info {
-  color: var(--flo-text-gray); /* text-gray-500 */
-  font-size: 0.75rem; /* text-xs */
-}
-
-.comment-timestamp {
-  margin-left: 0.5rem; /* ml-2 */
+.pagination-btn.active {
+  background-color: #4b0082;
+  color: #fff;
+  border-color: #4b0082;
 }

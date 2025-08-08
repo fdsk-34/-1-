@@ -3,32 +3,33 @@ import PropTypes from 'prop-types';
 
 import '../styles/Equalizer.css';
 
-const Equalizer = ({ mode = 'linked', isPlaying = true }) => {
+const Equalizer = ({ type = 'linked', isPlaying = true }) => {
   const barsRef = useRef([]);
+
   // 모드별 기본 크기 설정 (CSS에서 반응형으로 조정)
   const sizes = {
-    dynamic: { width: 150, height: 80, barWidth: 15 },
+    dynamic: { width: 200, height: 80, barWidth: 15 },
     linked: { width: 100, height: 60, barWidth: 10 },
     static: { width: 80, height: 40, barWidth: 8 },
   };
-  const { width, height, barWidth } = sizes[mode] || sizes.linked;
+  const { width, height, barWidth } = sizes[type] || sizes.linked;
 
   useEffect(() => {
     let animationFrameId;
     let startTime = null;
 
+    // 초음파형 웨이브 애니메이션 함수 (dynamic)
     const drawDynamicWave = (timestamp) => {
       if (!startTime) startTime = timestamp;
       const elapsed = (timestamp - startTime) / 1000; // 초 단위
-      const period = 5; // 5초 주기
+      const period = 2; // 2초 주기
       const phase = (elapsed % period) / period; // 0~1
 
       barsRef.current.forEach((bar, i) => {
         if (bar) {
-          const maxHeight = height * 0.9; // 진폭 증가 (80% → 90%)
-          const minHeight = height * 0.1; // 최소 높이 낮춤
-          // 사인파 웨이브: 속도 증가 및 역동성 강화
-          const wave = Math.sin(2 * Math.PI * (phase * 2 - i / 5)); // phase * 2로 속도 2배
+          const maxHeight = height * 0.9;
+          const minHeight = height * 0.1;
+          const wave = Math.sin(2 * Math.PI * (phase * 3 - i / 5)); // phase * 3으로 속도 증가
           const normalized = (wave + 1) / 2; // -1~1 → 0~1
           const dynamicHeight = isPlaying ? minHeight + normalized * (maxHeight - minHeight) : minHeight;
           const y = height - dynamicHeight;
@@ -39,6 +40,7 @@ const Equalizer = ({ mode = 'linked', isPlaying = true }) => {
       animationFrameId = requestAnimationFrame(drawDynamicWave);
     };
 
+    // 정지 상태 시 초기화 함수
     const initializeBars = () => {
       barsRef.current.forEach((bar) => {
         if (bar) {
@@ -49,6 +51,7 @@ const Equalizer = ({ mode = 'linked', isPlaying = true }) => {
       });
     };
 
+    // 연동형 막대 애니메이션 함수 (linked)
     const drawLinkedEqualizer = () => {
       barsRef.current.forEach((bar) => {
         if (bar) {
@@ -63,21 +66,26 @@ const Equalizer = ({ mode = 'linked', isPlaying = true }) => {
       animationFrameId = requestAnimationFrame(drawLinkedEqualizer);
     };
 
-    if (mode === 'dynamic' && isPlaying) {
-      drawDynamicWave(performance.now());
-    } else if (mode === 'linked' && isPlaying) {
-      drawLinkedEqualizer();
+    // type에 따라 애니메이션 실행
+    if (isPlaying) {
+      if (type === 'dynamic') {
+        drawDynamicWave(performance.now());
+      } else if (type === 'linked') {
+        drawLinkedEqualizer();
+      } else {
+        initializeBars();
+      }
     } else {
       initializeBars();
     }
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [mode, isPlaying, height]);
+  }, [type, isPlaying, height]);
 
   return (
-    <div className={`equalizer-container equalizer-${mode}`}>
+    <div className={`equalizer-container ${type} ${isPlaying ? 'playing' : ''}`}>
       <svg
-        width="100%" // CSS에서 너비 조정
+        width="100%"
         height={height}
         className="equalizer-svg-icon"
         viewBox={`0 0 ${width} ${height}`}
@@ -101,7 +109,7 @@ const Equalizer = ({ mode = 'linked', isPlaying = true }) => {
 };
 
 Equalizer.propTypes = {
-  mode: PropTypes.oneOf(['dynamic', 'linked', 'static']),
+  type: PropTypes.oneOf(['dynamic', 'linked', 'static']),
   isPlaying: PropTypes.bool,
 };
 
